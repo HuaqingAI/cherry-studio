@@ -1,0 +1,137 @@
+{
+  "repository_type": "monorepo",
+  "project_name": "cherry-studio",
+  "primary_project_type": "desktop",
+  "generated_at": "2026-05-29T21:15:53.1524770+08:00",
+  "parts": [
+    {
+      "id": "desktop-app",
+      "name": "Cherry Studio Desktop App",
+      "type": "desktop",
+      "root": ".",
+      "entry_points": [
+        "src/main/index.ts",
+        "src/preload/index.ts",
+        "src/renderer/windows/main/index.html"
+      ],
+      "description": "Electron desktop application containing main, preload, renderer, data layer, API server, knowledge, MCP, and agent systems."
+    },
+    {
+      "id": "ui",
+      "name": "@cherrystudio/ui",
+      "type": "library",
+      "root": "packages/ui",
+      "entry_points": [
+        "packages/ui/src/index.ts"
+      ],
+      "description": "Internal UI design system package built on Tailwind CSS v4 and React."
+    },
+    {
+      "id": "ai-core",
+      "name": "@cherrystudio/ai-core",
+      "type": "library",
+      "root": "packages/aiCore",
+      "entry_points": [
+        "packages/aiCore/src/index.ts"
+      ],
+      "description": "Unified AI provider abstraction and plugin-enabled execution layer."
+    },
+    {
+      "id": "ai-sdk-provider",
+      "name": "@cherrystudio/ai-sdk-provider",
+      "type": "library",
+      "root": "packages/ai-sdk-provider",
+      "entry_points": [
+        "packages/ai-sdk-provider/src/index.ts"
+      ],
+      "description": "CherryIN-oriented provider adapter for the Vercel AI SDK ecosystem."
+    },
+    {
+      "id": "provider-registry",
+      "name": "@cherrystudio/provider-registry",
+      "type": "library",
+      "root": "packages/provider-registry",
+      "entry_points": [
+        "packages/provider-registry/src/index.ts",
+        "packages/provider-registry/src/registry-loader.ts"
+      ],
+      "description": "Static provider and model registry data plus loader utilities."
+    },
+    {
+      "id": "mcp-trace",
+      "name": "mcp-trace",
+      "type": "library",
+      "root": "packages/mcp-trace",
+      "entry_points": [
+        "packages/mcp-trace/trace-core/index.ts",
+        "packages/mcp-trace/trace-node/nodeTracer.ts",
+        "packages/mcp-trace/trace-web/index.ts"
+      ],
+      "description": "Tracing utilities shared across node and web environments."
+    },
+    {
+      "id": "extension-table-plus",
+      "name": "@cherrystudio/extension-table-plus",
+      "type": "library",
+      "root": "packages/extension-table-plus",
+      "entry_points": [
+        "packages/extension-table-plus/src/index.ts"
+      ],
+      "description": "TipTap table extension fork used by the editor stack."
+    },
+    {
+      "id": "vectorstores-libsql",
+      "name": "@vectorstores/libsql",
+      "type": "library",
+      "root": "packages/vectorstores/libsql",
+      "entry_points": [
+        "packages/vectorstores/libsql/src/index.ts"
+      ],
+      "description": "libSQL-backed vector store implementation used by knowledge features."
+    }
+  ],
+  "integration_points": [
+    {
+      "from": "desktop-app",
+      "to": "ui",
+      "type": "renderer-library",
+      "details": "Renderer imports shared UI components, icons, styles, and hooks from the internal UI package."
+    },
+    {
+      "from": "desktop-app",
+      "to": "ai-core",
+      "type": "runtime-library",
+      "details": "Renderer-side AI workflows use ai-core abstractions to talk to model providers."
+    },
+    {
+      "from": "ai-core",
+      "to": "ai-sdk-provider",
+      "type": "provider-adapter",
+      "details": "ai-core relies on custom provider bundles for specific upstream compatibility behavior."
+    },
+    {
+      "from": "desktop-app",
+      "to": "provider-registry",
+      "type": "data-library",
+      "details": "App loads static provider/model registry data as packaged runtime resources."
+    },
+    {
+      "from": "desktop-app",
+      "to": "mcp-trace",
+      "type": "cross-process-library",
+      "details": "Main and renderer both depend on trace-core and environment-specific tracing helpers."
+    },
+    {
+      "from": "desktop-app",
+      "to": "extension-table-plus",
+      "type": "editor-extension",
+      "details": "Rich text editing flows use the internal TipTap table extension."
+    },
+    {
+      "from": "desktop-app",
+      "to": "vectorstores-libsql",
+      "type": "knowledge-storage",
+      "details": "Knowledge workflows use the libSQL vector store implementation."
+    }
+  ]
+}
