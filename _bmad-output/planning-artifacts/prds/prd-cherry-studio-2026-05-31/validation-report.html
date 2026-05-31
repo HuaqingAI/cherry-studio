@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>PRD Validation: Cherry Studio 企业 AI 客户端 P0</title>
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: #e7e5e4;
+    --text: #1c1917;
+    --muted: #78716c;
+    --verdict-strong: #16a34a;
+    --verdict-adequate: #65a30d;
+    --verdict-thin: #d97706;
+    --verdict-broken: #dc2626;
+    --sev-low: #64748b;
+    --sev-medium: #ca8a04;
+    --sev-high: #ea580c;
+    --sev-critical: #dc2626;
+    --grade-good: #65a30d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+  header.report-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .title h1 { margin: 0; font-size: 22px; font-weight: 600; }
+  .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .grade { padding: 10px 18px; border-radius: 8px; font-weight: 600; color: white; white-space: nowrap; }
+  .grade-good { background: var(--grade-good); }
+  .synthesis {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--muted);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    font-size: 15.5px;
+  }
+  .dimension-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 24px; }
+  .dim-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .dim-name { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .dim-verdict { font-size: 14px; font-weight: 600; }
+  section.dimension { margin-bottom: 14px; }
+  section.dimension details { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  section summary { padding: 14px 20px; cursor: pointer; user-select: none; list-style: none; display: flex; align-items: center; gap: 12px; }
+  section summary::-webkit-details-marker { display: none; }
+  section summary::before { content: ">"; color: var(--muted); transition: transform 0.15s ease; }
+  section details[open] summary::before { transform: rotate(90deg); }
+  section summary h2 { display: inline; margin: 0; font-size: 16px; font-weight: 600; flex: 1; }
+  .verdict-pill { font-size: 11px; padding: 3px 10px; border-radius: 999px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: white; }
+  .verdict-strong { background: var(--verdict-strong); }
+  .verdict-adequate { background: var(--verdict-adequate); }
+  .verdict-thin { background: var(--verdict-thin); }
+  .dim-body { padding: 4px 20px 18px; }
+  .dim-judgment p { margin: 0 0 10px; }
+  .findings-list { padding: 0 20px 4px; }
+  article.finding { padding: 14px 0; border-top: 1px solid var(--border); }
+  article.finding:first-child { border-top: none; }
+  article.finding header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+  .badge { font-size: 10.5px; padding: 3px 8px; border-radius: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; line-height: 1.4; }
+  .badge-sev-low { background: rgba(100, 116, 139, 0.12); color: var(--sev-low); }
+  .badge-sev-medium { background: rgba(202, 138, 4, 0.14); color: var(--sev-medium); }
+  .finding-title { margin: 0; font-size: 15px; font-weight: 500; flex: 1; min-width: 200px; }
+  .finding-location { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; color: var(--muted); }
+  .finding-note, .finding-fix { margin-top: 6px; font-size: 14px; }
+  .finding-fix strong { color: var(--muted); font-weight: 500; }
+  .mechanical { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin-top: 24px; font-size: 14px; }
+  .mechanical h3 { margin: 0 0 10px; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  footer.report-footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="report-header">
+    <div class="title">
+      <h1>Cherry Studio 企业 AI 客户端 P0 — Validation Report</h1>
+      <div class="subtitle">D:\ProgramData\git\repository\github\huaqingai\cherry-studio\_bmad-output\planning-artifacts\prds\prd-cherry-studio-2026-05-31\prd.md</div>
+    </div>
+    <div class="grade grade-good">Good</div>
+  </header>
+
+  <div class="synthesis">
+    <p>这份 PRD 的产品方向、边界和 P0 取舍是清楚的：它把 Cherry Studio 定位为企业 AI Infrastructure 的纯客户端消费端，并用 Non-Goals、MVP Scope、Risks 和 Addendum 反复约束了不做管理后台、不复制远端资源、不重做首页 Agent。主要风险不在战略方向，而在交付门槛：若直接进入架构和故事拆解，Phase 0 契约冻结、负向验收场景、性能/埋点阈值和资源状态矩阵还不够可执行。</p>
+    <p>总体建议是 <strong>Good / 可推进到 Phase 0 契约确认，但不应直接进入完整实现拆解</strong>。先补齐 Phase 0 退出标准、负向 ATDD、SM-6 至 SM-8 的目标口径，以及资源状态矩阵的验收形态。</p>
+  </div>
+
+  <div class="dimension-summary">
+    <div class="dim-card"><div class="dim-name">Decision-readiness</div><div class="dim-verdict" style="color: var(--verdict-adequate)">adequate</div></div>
+    <div class="dim-card"><div class="dim-name">Substance over theater</div><div class="dim-verdict" style="color: var(--verdict-strong)">strong</div></div>
+    <div class="dim-card"><div class="dim-name">Strategic coherence</div><div class="dim-verdict" style="color: var(--verdict-adequate)">adequate</div></div>
+    <div class="dim-card"><div class="dim-name">Done-ness clarity</div><div class="dim-verdict" style="color: var(--verdict-thin)">thin</div></div>
+    <div class="dim-card"><div class="dim-name">Scope honesty</div><div class="dim-verdict" style="color: var(--verdict-strong)">strong</div></div>
+    <div class="dim-card"><div class="dim-name">Downstream usability</div><div class="dim-verdict" style="color: var(--verdict-adequate)">adequate</div></div>
+    <div class="dim-card"><div class="dim-name">Shape fit</div><div class="dim-verdict" style="color: var(--verdict-strong)">strong</div></div>
+  </div>
+
+  <section class="dimension">
+    <details>
+      <summary><h2>Decision-readiness</h2><span class="verdict-pill verdict-adequate">adequate</span></summary>
+      <div class="dim-body"><div class="dim-judgment">
+        <p>PRD 能支持方向性决策。Vision、Non-Goals、MVP Scope 和 Open Questions 都清楚说明 P0 是“企业登录 + 三类远端资源消费”的客户端闭环，而不是企业工作台重构。</p>
+      </div></div>
+      <div class="findings-list">
+        <article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">Phase 0 缺少可执行退出门槛</h3><span class="finding-location">§10; §13.1</span></header><div class="finding-note">PRD 已经识别 OAuth、模型发现、知识库调用、技能执行、缓存撤销是架构前置阻塞项，但还没有定义“冻结完成”的证据。</div><div class="finding-fix"><strong>Fix:</strong> 增加 “Phase 0 Exit Criteria” 小节，按五类契约列出 owner、输出物、验收方式和未冻结时禁止拆解的范围。</div></article>
+      </div>
+    </details>
+  </section>
+
+  <section class="dimension">
+    <details>
+      <summary><h2>Substance over theater</h2><span class="verdict-pill verdict-strong">strong</span></summary>
+      <div class="dim-body"><div class="dim-judgment"><p>内容不是模板填充。JTBD、NFR、Non-Goals 和 Counter-metrics 都在服务 P0 取舍，尤其是客户端纯边界和缓存不可授权执行这两条主线。</p></div></div>
+    </details>
+  </section>
+
+  <section class="dimension">
+    <details>
+      <summary><h2>Strategic coherence</h2><span class="verdict-pill verdict-adequate">adequate</span></summary>
+      <div class="dim-body"><div class="dim-judgment"><p>PRD 有统一 thesis：降低普通员工接入企业 AI 的配置成本，同时保持企业 AI Infrastructure 作为资源和权限 source of truth。薄弱点在于部分产品结果指标仍缺目标口径。</p></div></div>
+      <div class="findings-list">
+        <article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">SM-6 至 SM-8 还不是可验收目标</h3><span class="finding-location">§12; §13.3</span></header><div class="finding-note">“7 日继续使用率”“首次可用答案耗时”“任务完成自评”没有目标值、采集方式、样本条件或 owner。</div><div class="finding-fix"><strong>Fix:</strong> 添加目标或明确标注为 exploratory metrics；若作为验收指标，补齐试点样本、采集事件、统计窗口和负责人。</div></article>
+      </div>
+    </details>
+  </section>
+
+  <section class="dimension">
+    <details open>
+      <summary><h2>Done-ness clarity</h2><span class="verdict-pill verdict-thin">thin</span></summary>
+      <div class="dim-body"><div class="dim-judgment"><p>FR 的基础形态可用，26 个 FR 都有 testable consequences。问题是负向和横切验收还不够具体，特别是授权失败、资源撤销、缓存 stale/offline、单企业账号切换、性能阈值和埋点口径。</p></div></div>
+      <div class="findings-list">
+        <article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">Required ATDD 只覆盖正向闭环</h3><span class="finding-location">§12; §4.7</span></header><div class="finding-note">ATDD-1 至 ATDD-3 能验证核心 happy path，但没有覆盖授权失败恢复、资源撤销、缓存不可授权执行、登录失效保护当前任务、单企业账号切换清理等高风险路径。</div><div class="finding-fix"><strong>Fix:</strong> 增加至少 3 个负向 ATDD：授权取消/过期后重登恢复、资源撤销后缓存不可调用、切换企业账号时清理旧账号状态。</div></article>
+        <article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">NFR 性能和观测性缺少 P0 基线</h3><span class="finding-location">§7.4; §7.5</span></header><div class="finding-note">PRD 要求后续冻结 p95、超时和埋点事件模型，但没有给出 PRD 级临时目标或最低采集口径。</div><div class="finding-fix"><strong>Fix:</strong> 增加 provisional NFR baselines，包括新增等待阈值、必须采集的事件名/字段和脱敏字段清单。</div></article>
+        <article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">资源状态矩阵仍停留在标题级要求</h3><span class="finding-location">§4.7; §13.2</span></header><div class="finding-note">FR-24 列出了多个状态，但没有形成状态 × 资源类型 × 用户动作 × 是否可调用的矩阵。</div><div class="finding-fix"><strong>Fix:</strong> 补一个最小状态矩阵，明确每个状态的文案意图、主动作、次动作、缓存展示和调用权限。</div></article>
+      </div>
+    </details>
+  </section>
+
+  <section class="dimension">
+    <details>
+      <summary><h2>Scope honesty</h2><span class="verdict-pill verdict-strong">strong</span></summary>
+      <div class="dim-body"><div class="dim-judgment"><p>PRD 对范围非常坦诚。Non-Goals 与 MVP Scope 互相印证，单企业账号策略和 Assumptions Index 都能稳定回指。</p></div></div>
+      <div class="findings-list">
+        <article class="finding"><header><span class="badge badge-sev-low">low</span><h3 class="finding-title">“企业 Provider 命名和 provider id” 被归为非阻塞可能偏轻</h3><span class="finding-location">§13.3</span></header><div class="finding-note">展示名可以非阻塞，但 provider id 会影响持久化 key、日志字段、埋点、i18n key 和迁移命名。</div><div class="finding-fix"><strong>Fix:</strong> 将 provider id 与产品展示名拆开，内部 stable id 进入 Phase 0 或架构前置确认。</div></article>
+      </div>
+    </details>
+  </section>
+
+  <section class="dimension">
+    <details>
+      <summary><h2>Downstream usability</h2><span class="verdict-pill verdict-adequate">adequate</span></summary>
+      <div class="dim-body"><div class="dim-judgment"><p>PRD 对 UX、Architecture、ATDD 后续工作是可抽取的：FR 编号连续、Glossary 覆盖核心名词，Addendum 承接架构深度。主要不足是状态矩阵和 Addendum 语言一致性。</p></div></div>
+      <div class="findings-list">
+        <article class="finding"><header><span class="badge badge-sev-low">low</span><h3 class="finding-title">Addendum 输出语言与 PRD 不一致</h3><span class="finding-location">addendum.md</span></header><div class="finding-note">主 PRD 是中文，Addendum 是英文；后续联合评审时容易出现术语双写和引用漂移。</div><div class="finding-fix"><strong>Fix:</strong> 翻成中文或声明英文技术备忘，并统一关键术语中英映射。</div></article>
+      </div>
+    </details>
+  </section>
+
+  <section class="dimension">
+    <details>
+      <summary><h2>Shape fit</h2><span class="verdict-pill verdict-strong">strong</span></summary>
+      <div class="dim-body"><div class="dim-judgment"><p>形状匹配 brownfield 内部实现/企业能力接入型 PRD：capability spec 为主，User Journey 为辅，技术深度放入 Addendum。</p></div></div>
+    </details>
+  </section>
+
+  <div class="mechanical">
+    <h3>Mechanical notes</h3>
+    <ul>
+      <li>FR 编号连续：FR-1 至 FR-26。</li>
+      <li>SM 编号连续：SM-1 至 SM-8，Counter-metrics 为 SM-C1 至 SM-C3。</li>
+      <li>Assumptions Index roundtrip 通过：正文 3 个 [ASSUMPTION] 均在 §14 收录。</li>
+      <li>UJ 使用角色型 protagonist；对本 PRD 可接受，进入 UX 叙事稿时可再补具名人物。</li>
+    </ul>
+  </div>
+
+  <footer class="report-footer">
+    <div>Rubric: D:\ProgramData\git\repository\github\huaqingai\cherry-studio\.agents\skills\bmad-prd\assets\prd-validation-checklist.md</div>
+    <div>Generated: 2026-05-31T02:04:09.0155415+08:00</div>
+  </footer>
+</div>
+</body>
+</html>
