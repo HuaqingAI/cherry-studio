@@ -1,6 +1,10 @@
 import path from 'node:path'
 
 import { agentTable } from '@data/db/schemas/agent'
+import { agentChannelTable } from '@data/db/schemas/agentChannel'
+import { agentSessionTable } from '@data/db/schemas/agentSession'
+import { agentSessionMessageTable } from '@data/db/schemas/agentSessionMessage'
+import { agentTaskTable, agentTaskRunLogTable } from '@data/db/schemas/agentTask'
 import { userModelTable } from '@data/db/schemas/userModel'
 import { userProviderTable } from '@data/db/schemas/userProvider'
 import { agentService } from '@data/services/AgentService'
@@ -8,6 +12,8 @@ import { pinService } from '@data/services/PinService'
 import { generateOrderKeyBetween } from '@data/services/utils/orderKey'
 import { createUniqueModelId } from '@shared/data/types/model'
 import { setupTestDatabase } from '@test-helpers/db'
+import { UserMessageStatus } from '@types'
+import { eq } from 'drizzle-orm'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@main/apiServer/services/mcp', () => ({
@@ -146,6 +152,74 @@ describe('AgentService', () => {
 
       const remaining = await pinService.listByEntityType('agent')
       expect(remaining.map((p) => p.entityId)).toEqual([otherPin.entityId])
+    })
+
+    it('cleans sessions, messages, and session references when deleting an agent', async () => {
+      const { id } = await insertAgent({ id: 'agent_cleanup_001' })
+      const sessionId = 'agent_cleanup_session_001'
+      const taskId = 'agent_cleanup_task_001'
+
+      await dbh.db.insert(agentSessionTable).values({
+        id: sessionId,
+        agentId: id,
+        agentType: 'claude-code',
+        name: 'Cleanup Session',
+        instructions: 'You are a helpful assistant.',
+        model: 'claude-3-5-sonnet'
+      })
+      await dbh.db.insert(agentSessionMessageTable).values({
+        sessionId,
+        role: 'user',
+        content: {
+          message: {
+            id: 'message-1',
+            role: 'user',
+            assistantId: id,
+            topicId: `agent-session:${sessionId}`,
+            createdAt: new Date().toISOString(),
+            status: UserMessageStatus.SUCCESS,
+            blocks: []
+          },
+          blocks: []
+        }
+      })
+      await dbh.db.insert(agentChannelTable).values({
+        id: 'agent_cleanup_channel_001',
+        type: 'telegram',
+        name: 'Cleanup Channel',
+        agentId: id,
+        sessionId,
+        config: {}
+      })
+      await dbh.db.insert(agentTaskTable).values({
+        id: taskId,
+        agentId: id,
+        name: 'Cleanup Task',
+        prompt: 'Run cleanup',
+        scheduleType: 'once',
+        scheduleValue: '* * * * *',
+        status: 'active'
+      })
+      await dbh.db.insert(agentTaskRunLogTable).values({
+        taskId,
+        sessionId,
+        runAt: Date.now(),
+        durationMs: 1,
+        status: 'success'
+      })
+
+      const deleted = await agentService.deleteAgent(id)
+
+      expect(deleted).toBe(true)
+      expect(await dbh.db.select().from(agentSessionTable).where(eq(agentSessionTable.agentId, id))).toHaveLength(0)
+      expect(await dbh.db.select().from(agentSessionMessageTable)).toHaveLength(0)
+      expect((await dbh.db.select().from(agentChannelTable).where(eq(agentChannelTable.id, 'agent_cleanup_channel_001')))[0]).toMatchObject({
+        agentId: null,
+        sessionId: null
+      })
+      expect(
+        (await dbh.db.select().from(agentTaskRunLogTable).where(eq(agentTaskRunLogTable.taskId, taskId)))[0].sessionId
+      ).toBeNull()
     })
   })
 

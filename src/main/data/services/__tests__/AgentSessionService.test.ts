@@ -1,6 +1,11 @@
 import { agentTable } from '@data/db/schemas/agent'
+import { agentChannelTable } from '@data/db/schemas/agentChannel'
+import { agentSessionMessageTable } from '@data/db/schemas/agentSessionMessage'
+import { agentTaskTable, agentTaskRunLogTable } from '@data/db/schemas/agentTask'
 import { agentSessionService, buildSessionUpdateData } from '@data/services/AgentSessionService'
 import { setupTestDatabase } from '@test-helpers/db'
+import { UserMessageStatus } from '@types'
+import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 // ─────────────────────────────────────────────────────────
@@ -178,6 +183,62 @@ describe('AgentSessionService', () => {
 
       const found = await agentSessionService.getSession(agentId, session!.id)
       expect(found).toBeNull()
+    })
+
+    it('cleans messages and session references when deleting a session', async () => {
+      const agentId = await insertAgent(`agent_${Date.now()}_cleanup`)
+      const session = await agentSessionService.createSession(agentId)
+      const taskId = `task_${Date.now()}_cleanup`
+
+      await dbh.db.insert(agentSessionMessageTable).values({
+        sessionId: session!.id,
+        role: 'user',
+        content: {
+          message: {
+            id: 'message-1',
+            role: 'user',
+            assistantId: agentId,
+            topicId: `agent-session:${session!.id}`,
+            createdAt: new Date().toISOString(),
+            status: UserMessageStatus.SUCCESS,
+            blocks: []
+          },
+          blocks: []
+        }
+      })
+      await dbh.db.insert(agentChannelTable).values({
+        id: `channel_${Date.now()}_cleanup`,
+        type: 'telegram',
+        name: 'Cleanup Channel',
+        agentId,
+        sessionId: session!.id,
+        config: {}
+      })
+      await dbh.db.insert(agentTaskTable).values({
+        id: taskId,
+        agentId,
+        name: 'Cleanup Task',
+        prompt: 'Run cleanup',
+        scheduleType: 'once',
+        scheduleValue: '* * * * *',
+        status: 'active'
+      })
+      await dbh.db.insert(agentTaskRunLogTable).values({
+        taskId,
+        sessionId: session!.id,
+        runAt: Date.now(),
+        durationMs: 1,
+        status: 'success'
+      })
+
+      const deleted = await agentSessionService.deleteSession(agentId, session!.id)
+
+      expect(deleted).toBe(true)
+      expect(await dbh.db.select().from(agentSessionMessageTable)).toHaveLength(0)
+      expect((await dbh.db.select().from(agentChannelTable).where(eq(agentChannelTable.agentId, agentId)))[0].sessionId).toBeNull()
+      expect(
+        (await dbh.db.select().from(agentTaskRunLogTable).where(eq(agentTaskRunLogTable.taskId, taskId)))[0].sessionId
+      ).toBeNull()
     })
 
     it('returns false when session does not exist', async () => {

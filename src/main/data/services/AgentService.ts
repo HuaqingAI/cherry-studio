@@ -1,6 +1,9 @@
 import { application } from '@application'
 import { type AgentRow, agentTable as agentsTable, type InsertAgentRow } from '@data/db/schemas/agent'
+import { agentChannelTable as channelsTable } from '@data/db/schemas/agentChannel'
 import { agentSessionTable as sessionsTable } from '@data/db/schemas/agentSession'
+import { agentSessionMessageTable as sessionMessagesTable } from '@data/db/schemas/agentSessionMessage'
+import { agentTaskRunLogTable as taskRunLogsTable } from '@data/db/schemas/agentTask'
 import { userModelTable } from '@data/db/schemas/userModel'
 import { defaultHandlersFor, withSqliteErrors } from '@data/db/sqliteErrors'
 import type { DbOrTx } from '@data/db/types'
@@ -301,7 +304,8 @@ export class AgentService {
   }
 
   async deleteAgent(id: string): Promise<boolean> {
-    const database = application.get('DbService').getDb()
+    const dbService = application.get('DbService')
+    const database = dbService.getDb()
     const agent = await this.findAgentRow(id)
 
     if (!agent) {
@@ -312,8 +316,21 @@ export class AgentService {
     // cannot leave dangling cross-entity rows behind.
     const result = await withSqliteErrors(
       async () =>
-        database.transaction(async (tx) => {
+        dbService.withWriteTx(async (tx) => {
           await pinService.purgeForEntityTx(tx, 'agent', id)
+          const sessionQuery = sql`SELECT ${sessionsTable.id} FROM ${sessionsTable} WHERE ${sessionsTable.agentId} = ${id}`
+
+          await tx
+            .update(channelsTable)
+            .set({ sessionId: null })
+            .where(sql`${channelsTable.sessionId} IN (${sessionQuery})`)
+          await tx
+            .update(taskRunLogsTable)
+            .set({ sessionId: null })
+            .where(sql`${taskRunLogsTable.sessionId} IN (${sessionQuery})`)
+          await tx.delete(sessionMessagesTable).where(sql`${sessionMessagesTable.sessionId} IN (${sessionQuery})`)
+          await tx.delete(sessionsTable).where(eq(sessionsTable.agentId, id))
+
           return tx.delete(agentsTable).where(eq(agentsTable.id, id))
         }),
       defaultHandlersFor('Agent', id)
