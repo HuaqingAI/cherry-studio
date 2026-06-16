@@ -71,7 +71,7 @@ export async function buildPlugins({ provider, model, config }: BuildPluginsCont
 
   // 0.1 Reasoning extraction for OpenAI/Azure providers
   const providerType = provider.type
-  if (providerType === 'openai' || providerType === 'azure-openai') {
+  if (providerType === 'openai' || providerType === 'azure-openai' || model.endpoint_type === 'openai') {
     const tagName = getReasoningTagName(model.id.toLowerCase())
     plugins.push(createReasoningExtractionPlugin({ tagName }))
   }

@@ -1,10 +1,13 @@
 import { application } from '@application'
+import { agentChannelTable as channelsTable } from '@data/db/schemas/agentChannel'
 import { agentTable as agentsTable } from '@data/db/schemas/agent'
 import {
   type AgentSessionRow as SessionRow,
   agentSessionTable as sessionsTable,
   type InsertAgentSessionRow as InsertSessionRow
 } from '@data/db/schemas/agentSession'
+import { agentSessionMessageTable as sessionMessagesTable } from '@data/db/schemas/agentSessionMessage'
+import { agentTaskRunLogTable as taskRunLogsTable } from '@data/db/schemas/agentTask'
 import { defaultHandlersFor, withSqliteErrors } from '@data/db/sqliteErrors'
 import { nullsToUndefined, timestampToISO } from '@data/services/utils/rowMappers'
 import { loggerService } from '@logger'
@@ -222,9 +225,24 @@ export class AgentSessionService {
   }
 
   async deleteSession(agentId: string, id: string): Promise<boolean> {
-    const database = application.get('DbService').getDb()
+    const dbService = application.get('DbService')
     const result = await withSqliteErrors(
-      () => database.delete(sessionsTable).where(and(eq(sessionsTable.id, id), eq(sessionsTable.agentId, agentId))),
+      () =>
+        dbService.withWriteTx(async (tx) => {
+          const sessionQuery = sql`SELECT ${sessionsTable.id} FROM ${sessionsTable} WHERE ${sessionsTable.id} = ${id} AND ${sessionsTable.agentId} = ${agentId}`
+
+          await tx
+            .update(channelsTable)
+            .set({ sessionId: null })
+            .where(sql`${channelsTable.sessionId} IN (${sessionQuery})`)
+          await tx
+            .update(taskRunLogsTable)
+            .set({ sessionId: null })
+            .where(sql`${taskRunLogsTable.sessionId} IN (${sessionQuery})`)
+          await tx.delete(sessionMessagesTable).where(sql`${sessionMessagesTable.sessionId} IN (${sessionQuery})`)
+
+          return tx.delete(sessionsTable).where(and(eq(sessionsTable.id, id), eq(sessionsTable.agentId, agentId)))
+        }),
       defaultHandlersFor('Session', id)
     )
     return result.rowsAffected > 0
