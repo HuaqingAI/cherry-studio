@@ -1,0 +1,556 @@
+# Instincts generated from https://github.com/HuaqingAI/cherry-studio
+# Generated: 2026-06-16T02:46:09.785Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: cherry-studio-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: fix, chore
+
+## Evidence
+
+- 12 commits analyzed
+- Detected conventional commit pattern
+- Examples: chore(models): prune legacy MiniMax models, keep M2.7 and M3 (#15580), fix: encode gemini model list api key (#15575)
+
+---
+id: cherry-studio-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Commit Length
+
+## Action
+
+Write moderate-length commit messages (~65 characters)
+
+## Evidence
+
+- Average commit message length: 65 chars
+- Based on 12 commits
+
+---
+id: cherry-studio-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Naming Files
+
+## Action
+
+Use camelCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: camelCase
+
+---
+id: cherry-studio-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: cherry-studio-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: cherry-studio-test-framework
+trigger: "when writing tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Test Framework
+
+## Action
+
+Use vitest as the test framework
+
+## Evidence
+
+- Test framework detected: vitest
+- File pattern: *.test.ts
+
+---
+id: cherry-studio-test-naming
+trigger: "when creating a test file"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Test Naming
+
+## Action
+
+Name test files using the pattern: *.test.ts
+
+## Evidence
+
+- File pattern: *.test.ts
+- Consistent across test files
+
+---
+id: cherry-studio-test-mocking
+trigger: "when mocking dependencies in tests"
+confidence: 0.75
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Test Mocking
+
+## Action
+
+Use msw for mocking
+
+## Evidence
+
+- Mocking pattern detected: msw
+- Consistent across test files
+
+---
+id: cherry-studio-test-types
+trigger: "when planning tests for a feature"
+confidence: 0.7
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Test Types
+
+## Action
+
+Write unit, integration tests to match project standards
+
+## Evidence
+
+- Test types detected: unit, integration
+- Coverage config: yes
+
+---
+id: cherry-studio-workflow-refactoring
+trigger: "when refactoring code"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Workflow Refactoring
+
+## Action
+
+Follow the refactoring workflow:
+1. Ensure tests pass before refactor
+2. Refactor code structure
+3. Verify tests still pass
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~20x per month
+- Files: src/**/*
+
+---
+id: cherry-studio-workflow-bugfix-with-unit-tests
+trigger: "when doing bugfix with unit tests"
+confidence: 0.65
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Workflow Bugfix With Unit Tests
+
+## Action
+
+Follow the bugfix-with-unit-tests workflow:
+1. Identify and fix the bug in the relevant service or utility file.
+2. Update or add unit tests in the corresponding __tests__ directory to cover the bug scenario.
+3. Run the test suite to validate the fix.
+4. Commit both the implementation and test changes together.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~3x per month
+- Files: src/renderer/aiCore/services/listModels.ts, src/renderer/aiCore/services/__tests__/listModels.test.ts, src/main/data/services/AgentService.ts
+
+---
+id: cherry-studio-workflow-model-or-provider-support-update
+trigger: "when doing model or provider support update"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Workflow Model Or Provider Support Update
+
+## Action
+
+Follow the model-or-provider-support-update workflow:
+1. Update or prune model definitions in config files (e.g., default.ts, reasoning.ts).
+2. Update model detection or reasoning logic in utility files.
+3. Update or add related plugin or parameter builder logic if needed.
+4. Optionally add or update tests for new/changed model logic.
+5. Document the change if user-facing.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: src/renderer/config/models/default.ts, src/renderer/config/models/reasoning.ts, src/renderer/config/models/utils.ts
+
+---
+id: cherry-studio-instinct-file-naming-camelCase
+trigger: "When creating or renaming a file in the codebase"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Instinct File Naming CamelCase
+
+## Action
+
+Use camelCase for file names
+
+## Evidence
+
+- Pattern in namingConventions.files
+- Observed in src/renderer/aiCore/prepareParams/modelParameters.ts
+
+---
+id: cherry-studio-instinct-function-naming-camelCase
+trigger: "When defining a new function"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Instinct Function Naming CamelCase
+
+## Action
+
+Name the function using camelCase
+
+## Evidence
+
+- Pattern in namingConventions.functions
+
+---
+id: cherry-studio-instinct-class-naming-PascalCase
+trigger: "When defining a new class"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Instinct Class Naming PascalCase
+
+## Action
+
+Name the class using PascalCase
+
+## Evidence
+
+- Pattern in namingConventions.classes
+
+---
+id: cherry-studio-instinct-constant-naming-SCREAMING_SNAKE_CASE
+trigger: "When declaring a constant"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Instinct Constant Naming SCREAMING_SNAKE_CASE
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for constant names
+
+## Evidence
+
+- Pattern in namingConventions.constants
+
+---
+id: cherry-studio-instinct-import-style-relative
+trigger: "When importing modules within the project"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Instinct Import Style Relative
+
+## Action
+
+Use relative import paths
+
+## Evidence
+
+- Pattern in importStyle
+- Observed in src/renderer/aiCore/prepareParams/modelParameters.ts
+
+---
+id: cherry-studio-instinct-export-style-named
+trigger: "When exporting functions or classes"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Instinct Export Style Named
+
+## Action
+
+Use named exports
+
+## Evidence
+
+- Pattern in exportStyle
+
+---
+id: cherry-studio-instinct-test-file-pattern
+trigger: "When creating a test file"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Instinct Test File Pattern
+
+## Action
+
+Name the test file with the pattern *.test.ts and place it in a __tests__ directory or alongside the tested file
+
+## Evidence
+
+- Pattern in testing.filePattern
+- Observed in src/renderer/aiCore/prepareParams/__tests__/modelParameters.test.ts
+
+---
+id: cherry-studio-instinct-testing-framework-vitest
+trigger: "When writing tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Instinct Testing Framework Vitest
+
+## Action
+
+Use the Vitest testing framework
+
+## Evidence
+
+- Pattern in testing.framework
+
+---
+id: cherry-studio-instinct-mocking-msw
+trigger: "When mocking APIs or network requests in tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Instinct Mocking Msw
+
+## Action
+
+Use msw for mocking
+
+## Evidence
+
+- Pattern in testing.mockingStyle
+
+---
+id: cherry-studio-instinct-test-coverage-config
+trigger: "When configuring tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Instinct Test Coverage Config
+
+## Action
+
+Ensure coverage configuration is enabled
+
+## Evidence
+
+- Pattern in testing.coverageConfig
+
+---
+id: cherry-studio-instinct-unit-and-integration-tests
+trigger: "When writing tests for new or changed code"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Instinct Unit And Integration Tests
+
+## Action
+
+Write both unit and integration tests as appropriate
+
+## Evidence
+
+- Pattern in testing.testTypes
+- Examples in __tests__ directories
+
+---
+id: cherry-studio-instinct-git-commit-conventional
+trigger: "When writing a commit message"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Instinct Git Commit Conventional
+
+## Action
+
+Use the conventional commit format with prefixes like fix: or chore:, and include a brief, descriptive message
+
+## Evidence
+
+- Pattern in commits.type and prefixes
+- Examples: 'fix: encode gemini model list api key (#15575)'
+
+---
+id: cherry-studio-instinct-git-commit-length
+trigger: "When writing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Instinct Git Commit Length
+
+## Action
+
+Keep the commit message concise, around 65 characters on average
+
+## Evidence
+
+- Pattern in commits.averageLength
+
+---
+id: cherry-studio-instinct-bugfix-with-unit-tests
+trigger: "When someone needs to fix a bug in a core service or utility and ensure it is tested"
+confidence: 0.95
+domain: workflow
+source: repo-analysis
+source_repo: HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Instinct Bugfix With Unit Tests
+
+## Action
+
+Fix the bug and update/add unit tests in the corresponding __tests__ directory; commit both implementation and test changes together
+
+## Evidence
+
+- Workflow: bugfix-with-unit-tests
+- Pattern in files: src/renderer/aiCore/services/listModels.ts and src/renderer/aiCore/services/__tests__/listModels.test.ts
+- Commit examples: fix: encode gemini model list api key (#15575)
+
+---
+id: cherry-studio-instinct-model-or-provider-support-update
+trigger: "When someone needs to add support for a new AI model/provider, update model parameters, or remove deprecated models"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: HuaqingAI/cherry-studio
+---
+
+# Cherry Studio Instinct Model Or Provider Support Update
+
+## Action
+
+Update/prune model definitions in config files, update detection/reasoning logic, update related plugins/parameter builders, and optionally update tests and documentation
+
+## Evidence
+
+- Workflow: model-or-provider-support-update
+- Pattern in files: src/renderer/config/models/default.ts, src/renderer/aiCore/utils/reasoning.ts
+- Commit examples: chore(models): prune legacy MiniMax models, keep M2.7 and M3 (#15580)
+
