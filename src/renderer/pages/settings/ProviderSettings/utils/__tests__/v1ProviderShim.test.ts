@@ -41,4 +41,16 @@ describe('toV1ProviderShim', () => {
     expect(shim.type).toBe('new-api')
     expect(shim.apiHost).toBe('https://api.example.com/v1')
   })
+
+  it('bridges hth providers as new-api type', () => {
+    const provider = makeProvider({
+      id: 'hth',
+      presetProviderId: 'hth'
+    })
+
+    const shim = toV1ProviderShim(provider)
+
+    expect(shim.id).toBe('hth')
+    expect(shim.type).toBe('new-api')
+  })
 })

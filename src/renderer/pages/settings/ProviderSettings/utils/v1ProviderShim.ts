@@ -37,7 +37,7 @@ function v1ProviderTypeFromV2(v2: V2Provider): ProviderType {
     return 'aws-bedrock'
   }
 
-  if (matchesPreset(v2, 'new-api')) {
+  if (matchesPreset(v2, 'new-api') || matchesPreset(v2, 'hth')) {
     return 'new-api'
   }
   if (v2.id === 'gateway') {

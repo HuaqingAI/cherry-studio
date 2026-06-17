@@ -16,6 +16,17 @@ export const CHERRYAI_PROVIDER: SystemProvider = {
 }
 
 export const SYSTEM_PROVIDERS_CONFIG: Record<SystemProviderId, SystemProvider> = {
+  hth: {
+    id: 'hth',
+    name: 'hth',
+    type: 'new-api',
+    apiKey: '',
+    apiHost: 'http://localhost:3000',
+    anthropicApiHost: 'http://localhost:3000',
+    models: SYSTEM_MODELS.hth,
+    isSystem: true,
+    enabled: false
+  },
   cherryin: {
     id: 'cherryin',
     name: 'CherryIN',
@@ -1280,6 +1291,15 @@ export const PROVIDER_URLS: Record<SystemProviderId, ProviderUrls> = {
     }
   },
   'new-api': {
+    api: {
+      url: 'http://localhost:3000'
+    },
+    websites: {
+      official: 'https://docs.newapi.pro/',
+      docs: 'https://docs.newapi.pro'
+    }
+  },
+  hth: {
     api: {
       url: 'http://localhost:3000'
     },

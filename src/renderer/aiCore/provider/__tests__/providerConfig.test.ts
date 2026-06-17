@@ -841,6 +841,20 @@ describe('providerToAiSdkConfig', () => {
       const settings = config.providerSettings as NewApiProviderSettings
       expect(settings.endpointType).toBe('openai-response')
     })
+
+    it('uses NewAPI builder for hth provider type', async () => {
+      const provider = makeProvider({
+        id: 'hth',
+        type: 'new-api',
+        apiHost: 'https://api.hth.example.com'
+      })
+
+      const config = await providerToAiSdkConfig(provider, makeModel('gpt-4', provider.id))
+
+      expect(config.providerId).toBe('newapi')
+      const settings = config.providerSettings as NewApiProviderSettings
+      expect(settings.baseURL).toBe('https://api.hth.example.com/v1')
+    })
   })
 
   describe('AiHubMix builder', () => {

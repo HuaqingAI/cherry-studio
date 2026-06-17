@@ -62,7 +62,7 @@ export function isProviderSettingsListVisibleProvider(provider: Provider): boole
 }
 
 export function isNewApiProvider(provider: Provider): boolean {
-  return ['new-api', 'cherryin', 'aionly'].includes(provider.id) || provider.presetProviderId === 'new-api'
+  return ['new-api', 'hth', 'cherryin', 'aionly'].includes(provider.id) || provider.presetProviderId === 'new-api'
 }
 
 export function isSystemProvider(provider: Provider): boolean {

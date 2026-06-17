@@ -411,7 +411,11 @@ const togetherFetcher: ModelFetcher = {
 }
 
 const newApiFetcher: ModelFetcher = {
-  match: (p) => p.id === SystemProviderIds['new-api'] || p.type === 'new-api' || p.id === SystemProviderIds.cherryin,
+  match: (p) =>
+    p.id === SystemProviderIds['new-api'] ||
+    p.id === SystemProviderIds.hth ||
+    p.type === 'new-api' ||
+    p.id === SystemProviderIds.cherryin,
   fetch: async (provider, signal) => {
     const baseUrl = formatApiHost(provider.apiHost)
     const response = await getFromApi({

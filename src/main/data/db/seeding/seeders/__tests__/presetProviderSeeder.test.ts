@@ -12,14 +12,15 @@ import { userProviderTable } from '@data/db/schemas/userProvider'
 import { PresetProviderSeeder } from '@data/db/seeding/seeders/presetProviderSeeder'
 import { generateOrderKeyBetween, generateOrderKeySequence } from '@data/services/utils/orderKey'
 import { setupTestDatabase } from '@test-helpers/db'
+import { asc } from 'drizzle-orm'
 import { describe, expect, it, vi } from 'vitest'
 
-// Fake registry providers — two preset providers: 'openai' and 'anthropic'.
-// The seeder always also adds 'cherryai' as a built-in.
+// Fake registry providers. The seeder always also adds 'cherryai' as a built-in.
 vi.mock('@cherrystudio/provider-registry/node', () => {
   class RegistryLoader {
     loadProviders() {
       return [
+        { id: 'hth', name: 'hth', endpointConfigs: {}, defaultChatEndpoint: null },
         { id: 'openai', name: 'OpenAI', endpointConfigs: {}, defaultChatEndpoint: null },
         { id: 'anthropic', name: 'Anthropic', endpointConfigs: {}, defaultChatEndpoint: null },
         { id: 'azure-openai', name: 'Azure OpenAI', endpointConfigs: {}, defaultChatEndpoint: null },
@@ -55,10 +56,12 @@ describe('PresetProviderSeeder.run — insert-only behavior', () => {
     const seed = new PresetProviderSeeder()
     await seed.run(dbh.db)
 
-    const rows = await dbh.db.select().from(userProviderTable)
+    const rows = await dbh.db.select().from(userProviderTable).orderBy(asc(userProviderTable.orderKey))
     const ids = rows.map((r) => r.providerId)
+    expect(ids[0]).toBe('hth')
     expect(ids).toContain('openai')
     expect(ids).toContain('anthropic')
+    expect(ids).toContain('hth')
     expect(ids).toContain('azure-openai')
     expect(ids).toContain('vertexai')
     expect(ids).toContain('aws-bedrock')
@@ -101,10 +104,11 @@ describe('PresetProviderSeeder.run — insert-only behavior', () => {
   })
 
   it('should not insert anything when all providers (including cherryai) already exist', async () => {
-    const [openaiKey, anthropicKey, azureKey, vertexKey, bedrockKey, cherryaiKey] = generateOrderKeySequence(6)
+    const [openaiKey, anthropicKey, hthKey, azureKey, vertexKey, bedrockKey, cherryaiKey] = generateOrderKeySequence(7)
     await dbh.db.insert(userProviderTable).values([
       { providerId: 'openai', name: 'OpenAI', orderKey: openaiKey },
       { providerId: 'anthropic', name: 'Anthropic', orderKey: anthropicKey },
+      { providerId: 'hth', name: 'hth', orderKey: hthKey },
       { providerId: 'azure-openai', name: 'Azure OpenAI', orderKey: azureKey },
       { providerId: 'vertexai', name: 'Vertex AI', orderKey: vertexKey },
       { providerId: 'aws-bedrock', name: 'AWS Bedrock', orderKey: bedrockKey },

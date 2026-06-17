@@ -1,6 +1,25 @@
 {
-  "version": "2026.04.09",
+  "version": "2026.06.17",
   "providers": [
+    {
+      "id": "hth",
+      "name": "hth",
+      "description": "hth - AI model provider",
+      "endpointConfigs": {
+        "openai-chat-completions": {
+          "baseUrl": "http://localhost:3000"
+        },
+        "anthropic-messages": {
+          "baseUrl": "http://localhost:3000"
+        }
+      },
+      "metadata": {
+        "website": {
+          "official": "https://docs.newapi.pro/",
+          "docs": "https://docs.newapi.pro"
+        }
+      }
+    },
     {
       "id": "cherryin",
       "name": "CherryIN",

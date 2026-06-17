@@ -1856,6 +1856,7 @@ export const SYSTEM_MODELS: Record<SystemProviderId | 'defaultModel', Model[]> =
     }
   ],
   'new-api': [],
+  hth: [],
   'aws-bedrock': [],
   poe: [
     { id: 'Claude-Opus-4.6', name: 'Claude Opus 4.6', provider: 'poe', group: 'Anthropic' },

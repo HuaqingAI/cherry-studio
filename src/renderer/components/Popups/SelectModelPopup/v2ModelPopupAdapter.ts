@@ -81,7 +81,7 @@ export function toLegacyProvider(provider: RuntimeProvider, models: RuntimeModel
                   ? 'openai-response'
                   : provider.id === 'gateway'
                     ? 'gateway'
-                    : provider.presetProviderId === 'new-api' || provider.id === 'new-api'
+                    : provider.presetProviderId === 'new-api' || provider.id === 'new-api' || provider.id === 'hth'
                       ? 'new-api'
                       : provider.id === 'ollama'
                         ? 'ollama'

@@ -471,6 +471,37 @@ describe('listModels', () => {
     })
   })
 
+  describe('NewAPI-compatible (hth)', () => {
+    it('uses the NewAPI model endpoint for hth provider id', async () => {
+      mockGetFromApi.mockResolvedValue({
+        value: {
+          data: [
+            {
+              id: 'claude-4-sonnet',
+              object: 'model',
+              owned_by: 'anthropic',
+              supported_endpoint_types: ['anthropic']
+            }
+          ]
+        }
+      })
+
+      const models = await listModels(makeProvider({ id: 'hth' }))
+
+      expect(mockGetFromApi).toHaveBeenCalledTimes(1)
+      expect(mockGetFromApi.mock.calls[0]?.[0]).toMatchObject({
+        url: 'https://api.example.com/v1/models'
+      })
+      expect(models).toHaveLength(1)
+      expect(models[0]).toMatchObject({
+        id: 'claude-4-sonnet',
+        provider: 'hth',
+        owned_by: 'anthropic',
+        supported_endpoint_types: ['anthropic']
+      })
+    })
+  })
+
   describe('Gemini', () => {
     it('should strip models/ prefix and use displayName from real response', async () => {
       mockGetFromApi.mockResolvedValue({ value: REAL_GEMINI })

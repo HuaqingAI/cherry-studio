@@ -184,6 +184,32 @@ describe('Model drawers', () => {
     )
   })
 
+  it('renders the hth add drawer as new-api mode and keeps endpoint type in create payload', async () => {
+    useProviderMock.mockReturnValue({
+      provider: { id: 'hth', name: 'hth' }
+    })
+
+    render(<AddModelDrawer providerId="hth" open prefill={null} onClose={vi.fn()} />)
+
+    expect(screen.getByTestId('provider-settings-drawer')).toBeInTheDocument()
+    expect(screen.getByTestId('provider-settings-model-endpoint-type-field')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('settings.models.add.model_id.label'), {
+      target: { value: 'claude-4-sonnet' }
+    })
+    await act(async () => {
+      fireEvent.submit(screen.getByTestId('provider-settings-model-add-drawer-content'))
+    })
+
+    expect(createModelMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerId: 'hth',
+        modelId: 'claude-4-sonnet',
+        endpointTypes: [ENDPOINT_TYPE.OPENAI_CHAT_COMPLETIONS]
+      })
+    )
+  })
+
   it('keeps the add-model submit disabled while creating and shows an error toast on failure', async () => {
     useProviderMock.mockReturnValue({
       provider: { id: 'openai', name: 'OpenAI' }

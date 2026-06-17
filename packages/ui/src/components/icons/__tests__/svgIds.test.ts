@@ -8,6 +8,8 @@ import { createElement } from 'react'
 import { describe, expect, it } from 'vitest'
 
 import { GoogleLight } from '../providers/google/light'
+import { HthIcon } from '../providers/hth'
+import { resolveProviderIcon } from '../registry'
 
 const ICONS_DIR = join(__dirname, '..')
 
@@ -65,6 +67,10 @@ describe('icon SVG ids', () => {
         expect(localIds.has(ref)).toBe(true)
       }
     }
+  })
+
+  it('resolves the hth provider icon', () => {
+    expect(resolveProviderIcon('hth')).toBe(HthIcon)
   })
 })
 

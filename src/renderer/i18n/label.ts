@@ -50,6 +50,7 @@ const providerKeyMap = {
   gpustack: 'provider.gpustack',
   grok: 'provider.grok',
   groq: 'provider.groq',
+  hth: 'provider.hth',
   hunyuan: 'provider.hunyuan',
   hyperbolic: 'provider.hyperbolic',
   infini: 'provider.infini',

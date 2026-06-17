@@ -187,9 +187,24 @@ describe('provider utils', () => {
 
   it('detects New API providers by id or type', () => {
     expect(isNewApiProvider(createProvider({ id: SystemProviderIds['new-api'] }))).toBe(true)
+    expect(isNewApiProvider(createProvider({ id: SystemProviderIds.hth }))).toBe(true)
     expect(isNewApiProvider(createProvider({ id: SystemProviderIds.cherryin }))).toBe(true)
     expect(isNewApiProvider(createProvider({ type: 'new-api' }))).toBe(true)
     expect(isNewApiProvider(createProvider())).toBe(false)
+  })
+
+  it('configures hth as a NewAPI-compatible system provider', () => {
+    expect(SYSTEM_PROVIDERS_CONFIG.hth).toMatchObject({
+      id: SystemProviderIds.hth,
+      name: 'hth',
+      type: 'new-api',
+      apiHost: 'http://localhost:3000',
+      anthropicApiHost: 'http://localhost:3000',
+      isSystem: true,
+      enabled: false
+    })
+    expect(SYSTEM_PROVIDERS_CONFIG.hth.models).toEqual([])
+    expect(PROVIDER_URLS.hth.api.url).toBe('http://localhost:3000')
   })
 
   it('detects specific provider ids', () => {
