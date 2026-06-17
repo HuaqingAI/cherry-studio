@@ -4,6 +4,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const addAssistantMock = vi.fn()
 const toastSuccessMock = vi.fn()
+const providersMock = vi.hoisted(() => [
+  {
+    id: 'openai',
+    type: 'openai',
+    name: 'OpenAI',
+    apiKey: '',
+    apiHost: '',
+    enabled: true,
+    models: [{ id: 'gpt-4', provider: 'openai', name: 'GPT-4', group: 'OpenAI' }]
+  }
+])
 
 vi.mock('@renderer/store', () => ({
   __esModule: true,
@@ -26,7 +37,7 @@ vi.mock('@renderer/store/assistants', () => ({
 }))
 
 vi.mock('@renderer/hooks/useStore', () => ({
-  getStoreProviders: vi.fn(() => [])
+  getStoreProviders: vi.fn(() => providersMock)
 }))
 
 vi.mock('@renderer/i18n', () => ({
@@ -53,13 +64,13 @@ describe('AssistantService', () => {
           emoji: options.body.emoji,
           description: options.body.description ?? '',
           settings: {},
-          modelId: null,
+          modelId: 'openai::gpt-4',
           mcpServerIds: [],
           knowledgeBaseIds: [],
           createdAt: '2026-06-16T08:00:00.000Z',
           updatedAt: '2026-06-16T08:00:00.000Z',
           tags: [],
-          modelName: null
+          modelName: 'GPT-4'
         }
       }
 
@@ -106,6 +117,7 @@ describe('AssistantService', () => {
       }
     })
     expect(assistant.id).toBe('assistant-from-data-api')
+    expect(assistant.model).toEqual({ id: 'gpt-4', provider: 'openai', name: 'GPT-4', group: 'OpenAI' })
     expect(assistant.topics).toEqual([
       {
         id: 'topic-from-data-api',
@@ -118,5 +130,62 @@ describe('AssistantService', () => {
       }
     ])
     expect(addAssistantMock).toHaveBeenCalledWith(assistant)
+  })
+
+  it('keeps the API model id when a default model is not available in legacy provider state', async () => {
+    vi.mocked(dataApiService.post).mockImplementation(async (path, options) => {
+      if (path === '/assistants') {
+        return {
+          id: 'assistant-from-data-api',
+          name: options.body.name,
+          prompt: options.body.prompt,
+          emoji: options.body.emoji,
+          description: options.body.description ?? '',
+          settings: {},
+          modelId: 'new-api::gpt-5.4',
+          mcpServerIds: [],
+          knowledgeBaseIds: [],
+          createdAt: '2026-06-16T08:00:00.000Z',
+          updatedAt: '2026-06-16T08:00:00.000Z',
+          tags: [],
+          modelName: 'GPT 5.4'
+        }
+      }
+
+      if (path === '/topics') {
+        return {
+          id: 'topic-from-data-api',
+          name: options.body.name,
+          assistantId: options.body.assistantId,
+          isNameManuallyEdited: false,
+          activeNodeId: null,
+          groupId: null,
+          orderKey: 'a0',
+          createdAt: '2026-06-16T08:00:01.000Z',
+          updatedAt: '2026-06-16T08:00:01.000Z'
+        }
+      }
+
+      throw new Error(`Unexpected path: ${path}`)
+    })
+
+    const { createAssistantWithDefaultTopic } = await import('../AssistantService')
+
+    const assistant = await createAssistantWithDefaultTopic({
+      id: 'preset-id',
+      name: 'Preset',
+      prompt: 'Be helpful',
+      topics: [],
+      type: 'assistant',
+      emoji: '⭐'
+    })
+
+    expect(assistant.model).toEqual({
+      id: 'new-api::gpt-5.4',
+      provider: 'new-api',
+      apiModelId: 'gpt-5.4',
+      name: 'GPT 5.4',
+      group: ''
+    })
   })
 })

@@ -26,6 +26,7 @@ import type {
 import type { CreateAssistantDto } from '@shared/data/api/schemas/assistants'
 import type { CreateTopicDto } from '@shared/data/api/schemas/topics'
 import type { Assistant as SharedAssistant } from '@shared/data/types/assistant'
+import { parseUniqueModelId } from '@shared/data/types/model'
 import type { Topic as SharedTopic } from '@shared/data/types/topic'
 import type { TranslateLanguage } from '@shared/data/types/translate'
 import { v4 as uuid } from 'uuid'
@@ -193,6 +194,27 @@ function mapSharedTopicToLegacyTopic(topic: SharedTopic): Topic {
   }
 }
 
+function mapSharedAssistantModelToLegacyModel(assistant: SharedAssistant): Model | undefined {
+  if (!assistant.modelId) {
+    return undefined
+  }
+
+  const { providerId, modelId } = parseUniqueModelId(assistant.modelId)
+  const model = getStoreProviders()
+    .flatMap((provider) => provider.models)
+    .find((model) => model.provider === providerId && (model.id === assistant.modelId || model.id === modelId))
+
+  return (
+    model ?? {
+      id: assistant.modelId,
+      provider: providerId,
+      apiModelId: modelId,
+      name: assistant.modelName ?? modelId,
+      group: ''
+    }
+  )
+}
+
 function mapSharedAssistantToLegacyAssistant(
   assistant: SharedAssistant,
   template: Assistant,
@@ -205,6 +227,7 @@ function mapSharedAssistantToLegacyAssistant(
     prompt: assistant.prompt,
     emoji: assistant.emoji,
     description: assistant.description,
+    model: mapSharedAssistantModelToLegacyModel(assistant),
     topics: [mapSharedTopicToLegacyTopic(topic)]
   }
 }
