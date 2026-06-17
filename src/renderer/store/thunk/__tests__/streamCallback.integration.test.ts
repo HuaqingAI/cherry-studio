@@ -3,15 +3,17 @@ import { BlockManager } from '@renderer/services/messageStreaming/BlockManager'
 import { createCallbacks } from '@renderer/services/messageStreaming/callbacks'
 import { streamingService } from '@renderer/services/messageStreaming/StreamingService'
 import { createStreamProcessor } from '@renderer/services/StreamProcessingService'
+import appStore from '@renderer/store'
 import { messageBlocksSlice } from '@renderer/store/messageBlock'
 import { messagesSlice } from '@renderer/store/newMessage'
 import type { Assistant, ExternalToolResult, MCPTool, Model } from '@renderer/types'
 import { WEB_SEARCH_SOURCE } from '@renderer/types'
 import type { Chunk } from '@renderer/types/chunk'
 import { ChunkType } from '@renderer/types/chunk'
-import { AssistantMessageStatus } from '@renderer/types/newMessage'
+import { AssistantMessageStatus, UserMessageStatus } from '@renderer/types/newMessage'
 import { MockCacheUtils } from '@test-mocks/renderer/CacheService'
 import { MockDataApiUtils } from '@test-mocks/renderer/DataApiService'
+import { mockRendererLoggerService } from '@test-mocks/RendererLoggerService'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { mockSavedFile } = vi.hoisted(() => ({
@@ -39,7 +41,18 @@ const createMockCallbacks = (
     parentId: 'test-user-msg-id',
     role: 'assistant',
     assistantId: mockAssistant.id,
-    model: mockAssistant.model
+    model: mockAssistant.model,
+    contextMessages: [
+      {
+        id: 'test-user-msg-id',
+        role: 'user',
+        assistantId: mockAssistant.id,
+        topicId: mockTopicId,
+        blocks: [],
+        status: UserMessageStatus.SUCCESS,
+        createdAt: new Date().toISOString()
+      }
+    ]
   })
 
   return createCallbacks({
@@ -287,7 +300,7 @@ vi.mock('@renderer/utils/queue', () => ({
 vi.mock('@renderer/utils/messageUtils/find', () => ({
   default: {},
   findMainTextBlocks: vi.fn(() => []),
-  getMainTextContent: vi.fn(() => 'Test content'),
+  getMainTextContent: vi.fn((message) => (message?.role === 'user' ? 'What is Cherry Studio?' : 'Visible answer')),
   findAllBlocks: vi.fn(() => [])
 }))
 
@@ -386,6 +399,8 @@ const processChunks = async (chunks: Chunk[], callbacks: ReturnType<typeof creat
   } finally {
     reader.releaseLock()
   }
+
+  await new Promise((resolve) => setTimeout(resolve, 0))
 }
 
 describe('streamCallback Integration Tests', () => {
@@ -491,6 +506,56 @@ describe('streamCallback Integration Tests', () => {
     // 验证消息状态更新
     expect(persistedData?.status).toBe('success')
     expect(persistedData?.stats?.totalTokens).toBe(150)
+  })
+
+  it('should clear topic loading and log user and assistant previews on completion', async () => {
+    const dispatchSpy = vi.spyOn(appStore, 'dispatch')
+    const infoSpy = vi.spyOn(mockRendererLoggerService, 'info').mockImplementation(() => {})
+    const callbacks = createMockCallbacks(mockAssistantMsgId, mockTopicId, mockAssistant)
+
+    const chunks: Chunk[] = [
+      { type: ChunkType.LLM_RESPONSE_CREATED },
+      { type: ChunkType.TEXT_START },
+      { type: ChunkType.TEXT_DELTA, text: 'Visible answer' },
+      { type: ChunkType.TEXT_COMPLETE, text: 'Visible answer' },
+      { type: ChunkType.BLOCK_COMPLETE }
+    ]
+
+    await processChunks(chunks, callbacks)
+
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'newMessages/setTopicLoading',
+        payload: { topicId: mockTopicId, loading: false }
+      })
+    )
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'newMessages/setTopicFulfilled',
+        payload: { topicId: mockTopicId, fulfilled: true }
+      })
+    )
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'newMessages/updateMessage',
+        payload: expect.objectContaining({
+          topicId: mockTopicId,
+          messageId: mockAssistantMsgId,
+          updates: expect.objectContaining({
+            status: AssistantMessageStatus.SUCCESS
+          })
+        })
+      })
+    )
+    expect(infoSpy).toHaveBeenCalledWith(
+      'Chat stream completion finished',
+      expect.objectContaining({
+        assistantId: mockAssistant.id,
+        topicId: mockTopicId,
+        userPreview: expect.objectContaining({ preview: 'What is Cherry Studio?' }),
+        assistantPreview: expect.objectContaining({ preview: 'Visible answer' })
+      })
+    )
   })
 
   it('should handle thinking flow', async () => {

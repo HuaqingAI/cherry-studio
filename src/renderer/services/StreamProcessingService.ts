@@ -52,9 +52,9 @@ export interface StreamProcessorCallbacks {
   onImageGenerated?: (imageData?: GenerateImageResponse) => void
   onLLMResponseComplete?: (response?: Response) => void
   // Called when an error occurs during chunk processing
-  onError?: (error: any) => void
+  onError?: (error: any) => void | Promise<void>
   // Called when the entire stream processing is signaled as complete (success or failure)
-  onComplete?: (status: AssistantMessageStatus, response?: Response) => void
+  onComplete?: (status: AssistantMessageStatus, response?: Response) => void | Promise<void>
   onVideoSearched?: (video?: { type: 'url' | 'path'; content: string }, metadata?: Record<string, any>) => void
   // Called when a block is created
   onBlockCreated?: () => void
@@ -64,6 +64,20 @@ export interface StreamProcessorCallbacks {
 
 // Function to create a stream processor instance
 export function createStreamProcessor(callbacks: StreamProcessorCallbacks = {}) {
+  const runAsyncCallback = (callback: () => void | Promise<void>, name: string) => {
+    try {
+      const result = callback()
+      void Promise.resolve(result).catch((error) => {
+        logger.error(`Error in ${name} callback:`, error as Error)
+      })
+    } catch (error) {
+      logger.error(`Error in ${name} callback:`, error as Error)
+      if (name !== 'onError') {
+        runAsyncCallback(() => callbacks.onError?.(error), 'onError')
+      }
+    }
+  }
+
   // The returned function processes a single chunk or a final signal
   return (chunk: Chunk) => {
     try {
@@ -71,7 +85,9 @@ export function createStreamProcessor(callbacks: StreamProcessorCallbacks = {}) 
       // logger.debug('data: ', data)
       switch (data.type) {
         case ChunkType.BLOCK_COMPLETE: {
-          if (callbacks.onComplete) callbacks.onComplete(AssistantMessageStatus.SUCCESS, data?.response)
+          if (callbacks.onComplete) {
+            runAsyncCallback(() => callbacks.onComplete!(AssistantMessageStatus.SUCCESS, data?.response), 'onComplete')
+          }
           break
         }
         case ChunkType.LLM_RESPONSE_CREATED: {
@@ -156,7 +172,9 @@ export function createStreamProcessor(callbacks: StreamProcessorCallbacks = {}) 
           break
         }
         case ChunkType.ERROR: {
-          if (callbacks.onError) callbacks.onError(data.error)
+          if (callbacks.onError) {
+            runAsyncCallback(() => callbacks.onError!(data.error), 'onError')
+          }
           break
         }
         case ChunkType.VIDEO_SEARCHED: {
@@ -178,7 +196,7 @@ export function createStreamProcessor(callbacks: StreamProcessorCallbacks = {}) 
       }
     } catch (error) {
       logger.error('Error processing stream chunk:', error as Error)
-      callbacks.onError?.(error)
+      runAsyncCallback(() => callbacks.onError?.(error), 'onError')
     }
   }
 }

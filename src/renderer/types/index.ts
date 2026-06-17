@@ -322,6 +322,7 @@ export type ModelCapability = {
 export type Model = {
   id: string
   provider: string
+  apiModelId?: string
   name: string
   group: string
   owned_by?: string
@@ -909,6 +910,7 @@ export type S3Config = {
 }
 
 export type { Message } from './newMessage'
+export { UserMessageStatus } from './newMessage'
 export * from './tool'
 
 // Memory Service Types

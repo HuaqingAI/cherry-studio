@@ -11,6 +11,7 @@
 import { application } from '@application'
 import { messageTable } from '@data/db/schemas/message'
 import { topicTable } from '@data/db/schemas/topic'
+import { userModelTable } from '@data/db/schemas/userModel'
 import { loggerService } from '@logger'
 import { DataApiErrorFactory } from '@shared/data/api'
 import type {
@@ -609,6 +610,24 @@ export class MessageService {
         resolvedParentId = dto.parentId
       }
 
+      let resolvedModelId = dto.modelId ?? null
+      if (resolvedModelId) {
+        const [model] = await tx
+          .select({ id: userModelTable.id })
+          .from(userModelTable)
+          .where(eq(userModelTable.id, resolvedModelId))
+          .limit(1)
+
+        if (!model) {
+          logger.warn('Message model not found; creating message without model reference', {
+            topicId,
+            role: dto.role,
+            modelId: resolvedModelId
+          })
+          resolvedModelId = null
+        }
+      }
+
       // Step 3: Insert the message using the resolved parentId.
       const [row] = await tx
         .insert(messageTable)
@@ -619,7 +638,7 @@ export class MessageService {
           data: dto.data,
           status: dto.status ?? 'pending',
           siblingsGroupId: dto.siblingsGroupId,
-          modelId: dto.modelId ?? null,
+          modelId: resolvedModelId,
           modelSnapshot: dto.modelSnapshot,
           traceId: dto.traceId,
           stats: dto.stats

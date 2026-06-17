@@ -22,6 +22,7 @@ import { AiSdkToChunkAdapter } from '@renderer/aiCore/chunk/AiSdkToChunkAdapter'
 import db from '@renderer/databases'
 import { getModel } from '@renderer/hooks/useModel'
 import { fetchMessagesSummary, transformMessagesAndFetch } from '@renderer/services/ApiService'
+import { buildLogPreview } from '@renderer/services/chatLogPreview'
 import { dbService } from '@renderer/services/db/DbService'
 import FileManager from '@renderer/services/FileManager'
 import { BlockManager } from '@renderer/services/messageStreaming/BlockManager'
@@ -54,6 +55,7 @@ import {
   resetAssistantMessage
 } from '@renderer/utils/messageUtils/create'
 import { getMainTextContent } from '@renderer/utils/messageUtils/find'
+import { getModelApiId, getModelDbId } from '@renderer/utils/model'
 import { getTopicQueue, waitForTopicQueue } from '@renderer/utils/queue'
 import { IpcChannel } from '@shared/IpcChannel'
 import { defaultAppHeaders } from '@shared/utils'
@@ -635,7 +637,7 @@ const fetchAndProcessAgentResponseImpl = async (
       siblingsGroupId: 0,
       role: 'assistant',
       model: assistant.model,
-      modelId: assistant.model?.id,
+      modelId: getModelDbId(assistant.model),
       assistantId: assistant.id,
       traceId: assistantMessage.traceId,
       agentSessionId: agentSession.agentSessionId
@@ -763,7 +765,7 @@ const fetchAndProcessAgentResponseImpl = async (
   } catch (error: any) {
     logger.error('Error in fetchAndProcessAgentResponseImpl:', error)
     try {
-      callbacks.onError?.(error)
+      await callbacks.onError?.(error)
     } catch (callbackError) {
       logger.error('Error in agent onError callback:', callbackError as Error)
     }
@@ -799,7 +801,7 @@ const dispatchMultiModelResponses = async (
     const assistantMessage = await streamingService.createAssistantMessage(topicId, {
       parentId: triggeringMessage.id,
       assistantId: assistant.id,
-      modelId: mentionedModel.id,
+      modelId: getModelDbId(mentionedModel),
       model: mentionedModel,
       siblingsGroupId,
       traceId: triggeringMessage.traceId ?? undefined
@@ -898,10 +900,23 @@ const fetchAndProcessAssistantResponseImpl = async (
       siblingsGroupId,
       role: 'assistant',
       model: assistant.model,
-      modelId: assistant.model?.id,
+      modelId: getModelDbId(assistant.model),
       assistantId: assistant.id,
       traceId: assistantMessage.traceId,
       contextMessages: messagesForContext
+    })
+
+    const lastUserContextMessage = messagesForContext.findLast((message) => message.role === 'user')
+    logger.info('Chat stream request started', {
+      assistantId: assistant.id,
+      assistantMsgId,
+      topicId,
+      messageCount: messagesForContext.length,
+      modelId: assistant.model?.id,
+      apiModelId: assistant.model ? getModelApiId(assistant.model) : undefined,
+      modelName: assistant.model?.name,
+      providerId: assistant.model?.provider,
+      userPreview: buildLogPreview(lastUserContextMessage ? getMainTextContent(lastUserContextMessage) : '')
     })
 
     // Create BlockManager with simplified dependencies (no dispatch/getState/saveUpdatesToDB)
@@ -962,7 +977,7 @@ const fetchAndProcessAssistantResponseImpl = async (
     })
     // 统一错误处理：确保 loading 状态被正确设置，避免队列任务卡住
     try {
-      callbacks.onError?.(error)
+      await callbacks.onError?.(error)
     } catch (callbackError) {
       logger.error('Error in onError callback:', callbackError as Error)
     } finally {
@@ -1059,7 +1074,7 @@ export const sendMessage =
           const assistantMessage = await streamingService.createAssistantMessage(topicId, {
             parentId: finalUserMessage.id,
             assistantId: assistant.id,
-            modelId: assistant.model?.id,
+            modelId: getModelDbId(assistant.model),
             model: assistant.model,
             siblingsGroupId: 0,
             traceId: finalUserMessage.traceId ?? undefined
@@ -1263,7 +1278,7 @@ export const resendMessageThunk =
         const assistantMessage = await streamingService.createAssistantMessage(topicId, {
           parentId: userMessageToResend.id,
           assistantId: assistant.id,
-          modelId: assistant.model?.id,
+          modelId: getModelDbId(assistant.model),
           model: assistant.model,
           siblingsGroupId: 0,
           traceId: userMessageToResend.traceId ?? undefined
@@ -1315,7 +1330,7 @@ export const resendMessageThunk =
         const assistantMessage = await streamingService.createAssistantMessage(topicId, {
           parentId: userMessageToResend.id,
           assistantId: assistant.id,
-          modelId: model.id,
+          modelId: getModelDbId(model),
           model,
           siblingsGroupId: 0,
           traceId: userMessageToResend.traceId ?? undefined
@@ -1625,7 +1640,7 @@ export const appendAssistantResponseThunk =
       const newAssistantMessageStub = await streamingService.createAssistantMessage(topicId, {
         parentId: askId, // Crucial: Use the original askId
         assistantId: assistant.id,
-        modelId: newModel.id,
+        modelId: getModelDbId(newModel),
         model: newModel,
         siblingsGroupId: 0,
         traceId: traceId ?? undefined
@@ -2228,7 +2243,7 @@ export const setupChannelStream = (
     (modelId ? getModel(modelId) : undefined) ??
     (modelId ? { id: modelId, provider: '', name: '', group: '' } : undefined)
   const assistantMessage = createAssistantMessage(agentId, topicId, {
-    ...(model ? { modelId: model.id, model } : {})
+    ...(model ? { modelId: getModelDbId(model), model } : {})
   })
   dispatch(newMessagesActions.addMessage({ topicId, message: assistantMessage }))
   dispatch(newMessagesActions.setTopicLoading({ topicId, loading: true }))

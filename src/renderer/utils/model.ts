@@ -8,6 +8,7 @@ import {
 } from '@renderer/config/models'
 import type { AdaptedApiModel, ApiModel, Model, ModelTag } from '@renderer/types'
 import { objectKeys } from '@renderer/types'
+import { createUniqueModelId, isUniqueModelId, type UniqueModelId } from '@shared/data/types/model'
 
 /**
  * 获取模型标签的状态
@@ -70,6 +71,23 @@ export function isFreeModel(model: Model) {
   }
 
   return (model.id + model.name).toLocaleLowerCase().includes('free')
+}
+
+export function getModelApiId(model: Pick<Model, 'apiModelId' | 'id'>): string {
+  return model.apiModelId?.trim() || model.id
+}
+
+export function getModelDbId(model?: Pick<Model, 'id' | 'provider'>): UniqueModelId | undefined {
+  if (!model?.id) {
+    return undefined
+  }
+  if (isUniqueModelId(model.id)) {
+    return model.id
+  }
+  if (!model.provider) {
+    return undefined
+  }
+  return createUniqueModelId(model.provider, model.id)
 }
 
 export const getDuplicateModelNames = <T extends Pick<Model, 'name'>>(models: T[]): Set<string> => {

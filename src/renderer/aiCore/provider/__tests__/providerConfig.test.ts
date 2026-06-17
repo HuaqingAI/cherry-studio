@@ -1,13 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+const loggerMocks = vi.hoisted(() => ({
+  debug: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn()
+}))
+
 vi.mock('@renderer/services/LoggerService', () => ({
   loggerService: {
-    withContext: () => ({
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn()
-    })
+    withContext: () => loggerMocks
   }
 }))
 
@@ -610,6 +612,10 @@ describe('providerToAiSdkConfig', () => {
       const settings = config.providerSettings as OpenAICompatibleProviderSettings
       expect(settings.name).toBe('cherryai')
       expect(typeof settings.fetch).toBe('function')
+      expect(loggerMocks.warn).not.toHaveBeenCalledWith(
+        'Provider ID not found in registered extensions, using as-is',
+        expect.anything()
+      )
     })
   })
 
@@ -861,7 +867,8 @@ describe('providerToAiSdkConfig', () => {
       const provider = makeProvider({
         id: 'some-openai-compat',
         type: 'openai',
-        apiHost: 'https://api.custom.com/v1'
+        apiHost: 'https://api.custom.com/v1',
+        isSystem: false
       })
 
       const config = (await providerToAiSdkConfig(
@@ -871,6 +878,10 @@ describe('providerToAiSdkConfig', () => {
 
       expect(config.providerId).toBe('openai-compatible')
       expect(config.providerSettings.includeUsage).toBe(true)
+      expect(loggerMocks.warn).not.toHaveBeenCalledWith(
+        'Provider ID not found in registered extensions, using as-is',
+        expect.anything()
+      )
     })
 
     it('excludes includeUsage when provider opts out of stream options', async () => {
@@ -880,6 +891,7 @@ describe('providerToAiSdkConfig', () => {
         id: 'some-openai-compat',
         type: 'openai',
         apiHost: 'https://api.custom.com/v1',
+        isSystem: false,
         apiOptions: { isNotSupportStreamOptions: true }
       })
 
@@ -897,7 +909,8 @@ describe('providerToAiSdkConfig', () => {
       const provider = makeProvider({
         id: 'some-openai-compat',
         type: 'openai',
-        apiHost: 'https://api.custom.com/v1'
+        apiHost: 'https://api.custom.com/v1',
+        isSystem: false
       })
 
       const config = (await providerToAiSdkConfig(

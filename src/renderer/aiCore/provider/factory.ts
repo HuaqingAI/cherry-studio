@@ -1,6 +1,7 @@
 import { extensionRegistry } from '@cherrystudio/ai-core/provider'
 import { loggerService } from '@logger'
-import { type Provider, SystemProviderIds } from '@renderer/types'
+import { isSystemProvider, type Provider, SystemProviderIds } from '@renderer/types'
+import { isCherryAIProvider } from '@renderer/utils/provider'
 import { isAzureOpenAIProvider, isAzureResponsesEndpoint } from '@renderer/utils/provider'
 
 import { type AppProviderId, appProviderIds } from '../types'
@@ -33,6 +34,10 @@ export function getAiSdkProviderId(provider: Provider): AppProviderId {
     return appProviderIds['xai-responses']
   }
 
+  if (isCherryAIProvider(provider)) {
+    return appProviderIds['openai-compatible']
+  }
+
   if (provider.id in appProviderIds) {
     return appProviderIds[provider.id]
   }
@@ -43,6 +48,13 @@ export function getAiSdkProviderId(provider: Provider): AppProviderId {
 
   if (provider.apiHost.includes('api.openai.com')) {
     return appProviderIds['openai-chat']
+  }
+
+  if (provider.type === 'openai') {
+    if (isSystemProvider(provider)) {
+      return provider.id
+    }
+    return appProviderIds['openai-compatible']
   }
 
   logger.warn('Provider ID not found in registered extensions, using as-is', {

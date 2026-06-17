@@ -124,6 +124,27 @@ describe('Integrated Provider Registry', () => {
       expect(result).toBe('unknown-provider')
     })
 
+    it('should resolve custom OpenAI providers to openai-compatible', () => {
+      const provider = createTestProvider('custom-openai-provider', 'openai')
+      provider.isSystem = false
+      const result = getAiSdkProviderId(provider)
+      expect(result).toBe('openai-compatible')
+    })
+
+    it('should resolve CherryAI to openai-compatible without falling through to unknown provider', () => {
+      const provider = createTestProvider('cherryai', 'openai')
+      provider.isSystem = true
+      const result = getAiSdkProviderId(provider)
+      expect(result).toBe('openai-compatible')
+    })
+
+    it('should preserve system OpenAI providers with registered custom behavior', () => {
+      const provider = createTestProvider('poe', 'openai')
+      provider.isSystem = true
+      const result = getAiSdkProviderId(provider)
+      expect(result).toBe('poe')
+    })
+
     it('should handle Azure OpenAI providers correctly', () => {
       const azureProvider = createAzureProvider('azure-test', '2024-02-15', 'gpt-4o')
       const result = getAiSdkProviderId(azureProvider)

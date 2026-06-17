@@ -23,6 +23,7 @@ import { notificationService } from '@renderer/services/NotificationService'
 import { estimateMessagesUsage } from '@renderer/services/TokenService'
 import store from '@renderer/store/'
 import { isTodoWriteBlock } from '@renderer/store/messageBlock'
+import { newMessagesActions } from '@renderer/store/newMessage'
 import { toolPermissionsActions } from '@renderer/store/toolPermissions'
 import type { Assistant } from '@renderer/types'
 import { ERROR_I18N_KEY_REQUEST_TIMEOUT, ERROR_I18N_KEY_STREAM_PAUSED } from '@renderer/types/error'
@@ -34,10 +35,12 @@ import { trackTokenUsage } from '@renderer/utils/analytics'
 import { isAbortError, isTimeoutError, serializeError } from '@renderer/utils/error'
 import { createBaseMessageBlock, createErrorBlock } from '@renderer/utils/messageUtils/create'
 import { findAllBlocks, getMainTextContent } from '@renderer/utils/messageUtils/find'
+import { getModelApiId } from '@renderer/utils/model'
 import { isFocused, isOnHomePage } from '@renderer/utils/window'
 import type { AISDKError } from 'ai'
 import { NoOutputGeneratedError } from 'ai'
 
+import { buildLogPreview } from '../../chatLogPreview'
 import type { BlockManager } from '../BlockManager'
 import { streamingService } from '../StreamingService'
 
@@ -62,6 +65,21 @@ export const createBaseCallbacks = (deps: BaseCallbacksDependencies) => {
 
   const startTime = Date.now()
   // notificationService is imported as a module-level singleton
+
+  const getLastUserContextPreview = () => {
+    const task = streamingService.getTask(assistantMsgId)
+    const contextMessages = task?.contextMessages ?? []
+    const lastUserMessage = contextMessages.findLast((message) => message.role === 'user')
+    return buildLogPreview(lastUserMessage ? getMainTextContent(lastUserMessage) : '')
+  }
+
+  const updateTopicLoadingAfterStreamSettled = () => {
+    const loading = streamingService.getActiveMessageIds(topicId).some((messageId) => messageId !== assistantMsgId)
+    store.dispatch(newMessagesActions.setTopicLoading({ topicId, loading }))
+    if (!loading) {
+      store.dispatch(newMessagesActions.setTopicFulfilled({ topicId, fulfilled: true }))
+    }
+  }
 
   /**
    * Find the block ID that should receive completion updates.
@@ -144,6 +162,7 @@ export const createBaseCallbacks = (deps: BaseCallbacksDependencies) => {
     onError: async (error: AISDKError) => {
       logger.debug('onError', error)
       if (NoOutputGeneratedError.isInstance(error)) {
+        updateTopicLoadingAfterStreamSettled()
         return
       }
       const isErrorTypeAbort = isAbortError(error)
@@ -155,132 +174,136 @@ export const createBaseCallbacks = (deps: BaseCallbacksDependencies) => {
         serializableError.i18nKey = ERROR_I18N_KEY_REQUEST_TIMEOUT
       }
 
-      const duration = Date.now() - startTime
+      try {
+        const duration = Date.now() - startTime
 
-      // Send error notification (except for abort errors)
-      if (!isErrorTypeAbort) {
-        const timeOut = duration > 30 * 1000
-        if ((!isOnHomePage() && timeOut) || (!isFocused() && timeOut)) {
-          await notificationService.send({
-            id: uuid(),
-            type: 'error',
-            title: i18n.t('notification.assistant'),
-            message: serializableError.message ?? '',
-            silent: false,
-            timestamp: Date.now(),
-            source: 'assistant'
-          })
-        }
-      }
-
-      const possibleBlockId = findBlockIdForCompletion()
-
-      if (possibleBlockId) {
-        // Update previous block status to ERROR/PAUSED/PAUSED
-        const changes: Partial<ThinkingMessageBlock> = {
-          status: isErrorTypeAbort ? MessageBlockStatus.PAUSED : MessageBlockStatus.ERROR
-        }
-        // 如果是 thinking block，保留实际思考时间
-        if (blockManager.lastBlockType === MessageBlockType.THINKING) {
-          const thinkingInfo = getCurrentThinkingInfo?.()
-          if (thinkingInfo?.blockId === possibleBlockId && thinkingInfo?.millsec && thinkingInfo.millsec > 0) {
-            changes.thinking_millsec = thinkingInfo.millsec
+        // Send error notification (except for abort errors)
+        if (!isErrorTypeAbort) {
+          const timeOut = duration > 30 * 1000
+          if ((!isOnHomePage() && timeOut) || (!isFocused() && timeOut)) {
+            await notificationService.send({
+              id: uuid(),
+              type: 'error',
+              title: i18n.t('notification.assistant'),
+              message: serializableError.message ?? '',
+              silent: false,
+              timestamp: Date.now(),
+              source: 'assistant'
+            })
           }
         }
-        blockManager.smartBlockUpdate(possibleBlockId, changes, blockManager.lastBlockType!, true)
-      }
 
-      // Fix: Update all blocks still in STREAMING status to PAUSED/ERROR
-      // This fixes the thinking timer continuing when response is stopped
-      const currentMessage = streamingService.getMessage(assistantMsgId)
-      if (currentMessage) {
-        const allBlockRefs = findAllBlocks(currentMessage)
-        // 获取当前思考信息（如果有），用于保留实际思考时间
-        const thinkingInfo = getCurrentThinkingInfo?.()
-        for (const blockRef of allBlockRefs) {
-          const block = streamingService.getBlock(blockRef.id)
-          if (!block) continue
+        const possibleBlockId = findBlockIdForCompletion()
 
-          // 更新非 possibleBlockId 的 STREAMING blocks（possibleBlockId 已在上面处理）
-          // 跳过 TOOL 类型 blocks，它们在下面的 tool block 分支中统一处理
-          if (
-            block.id !== possibleBlockId &&
-            block.status === MessageBlockStatus.STREAMING &&
-            block.type !== MessageBlockType.TOOL
-          ) {
-            const changes: Partial<ThinkingMessageBlock> = {
-              status: isErrorTypeAbort ? MessageBlockStatus.PAUSED : MessageBlockStatus.ERROR
-            }
-            if (
-              block.type === MessageBlockType.THINKING &&
-              thinkingInfo?.blockId === block.id &&
-              thinkingInfo?.millsec &&
-              thinkingInfo.millsec > 0
-            ) {
+        if (possibleBlockId) {
+          // Update previous block status to ERROR/PAUSED/PAUSED
+          const changes: Partial<ThinkingMessageBlock> = {
+            status: isErrorTypeAbort ? MessageBlockStatus.PAUSED : MessageBlockStatus.ERROR
+          }
+          // 如果是 thinking block，保留实际思考时间
+          if (blockManager.lastBlockType === MessageBlockType.THINKING) {
+            const thinkingInfo = getCurrentThinkingInfo?.()
+            if (thinkingInfo?.blockId === possibleBlockId && thinkingInfo?.millsec && thinkingInfo.millsec > 0) {
               changes.thinking_millsec = thinkingInfo.millsec
             }
-            streamingService.updateBlock(block.id, changes)
           }
+          blockManager.smartBlockUpdate(possibleBlockId, changes, blockManager.lastBlockType!, true)
+        }
 
-          // Fix: 更新所有仍处于非完成状态的 tool blocks 的 rawMcpToolResponse.status
-          // 当用户点击停止时，tool blocks 的 UI 状态依赖 rawMcpToolResponse.status，
-          // 而不是 MessageBlockStatus，所以需要单独更新
-          if (block.type === MessageBlockType.TOOL) {
-            const toolBlock = block
-            const toolResponse = toolBlock.metadata?.rawMcpToolResponse
-            const toolStatus = toolResponse?.status
+        // Fix: Update all blocks still in STREAMING status to PAUSED/ERROR
+        // This fixes the thinking timer continuing when response is stopped
+        const currentMessage = streamingService.getMessage(assistantMsgId)
+        if (currentMessage) {
+          const allBlockRefs = findAllBlocks(currentMessage)
+          // 获取当前思考信息（如果有），用于保留实际思考时间
+          const thinkingInfo = getCurrentThinkingInfo?.()
+          for (const blockRef of allBlockRefs) {
+            const block = streamingService.getBlock(blockRef.id)
+            if (!block) continue
+
+            // 更新非 possibleBlockId 的 STREAMING blocks（possibleBlockId 已在上面处理）
+            // 跳过 TOOL 类型 blocks，它们在下面的 tool block 分支中统一处理
             if (
-              toolResponse &&
-              toolStatus &&
-              toolStatus !== 'done' &&
-              toolStatus !== 'error' &&
-              toolStatus !== 'cancelled'
+              block.id !== possibleBlockId &&
+              block.status === MessageBlockStatus.STREAMING &&
+              block.type !== MessageBlockType.TOOL
             ) {
-              streamingService.updateBlock(block.id, {
-                status: isErrorTypeAbort ? MessageBlockStatus.PAUSED : MessageBlockStatus.ERROR,
-                metadata: {
-                  ...toolBlock.metadata,
-                  rawMcpToolResponse: {
-                    ...toolResponse,
-                    status: isErrorTypeAbort ? 'cancelled' : 'error'
+              const changes: Partial<ThinkingMessageBlock> = {
+                status: isErrorTypeAbort ? MessageBlockStatus.PAUSED : MessageBlockStatus.ERROR
+              }
+              if (
+                block.type === MessageBlockType.THINKING &&
+                thinkingInfo?.blockId === block.id &&
+                thinkingInfo?.millsec &&
+                thinkingInfo.millsec > 0
+              ) {
+                changes.thinking_millsec = thinkingInfo.millsec
+              }
+              streamingService.updateBlock(block.id, changes)
+            }
+
+            // Fix: 更新所有仍处于非完成状态的 tool blocks 的 rawMcpToolResponse.status
+            // 当用户点击停止时，tool blocks 的 UI 状态依赖 rawMcpToolResponse.status，
+            // 而不是 MessageBlockStatus，所以需要单独更新
+            if (block.type === MessageBlockType.TOOL) {
+              const toolBlock = block
+              const toolResponse = toolBlock.metadata?.rawMcpToolResponse
+              const toolStatus = toolResponse?.status
+              if (
+                toolResponse &&
+                toolStatus &&
+                toolStatus !== 'done' &&
+                toolStatus !== 'error' &&
+                toolStatus !== 'cancelled'
+              ) {
+                streamingService.updateBlock(block.id, {
+                  status: isErrorTypeAbort ? MessageBlockStatus.PAUSED : MessageBlockStatus.ERROR,
+                  metadata: {
+                    ...toolBlock.metadata,
+                    rawMcpToolResponse: {
+                      ...toolResponse,
+                      status: isErrorTypeAbort ? 'cancelled' : 'error'
+                    }
                   }
-                }
-              })
+                })
+              }
             }
           }
         }
+
+        // Clean up pending/submitting tool permission requests from this stream.
+        // Preserve 'invoking' entries as they may belong to concurrent streams.
+        store.dispatch(toolPermissionsActions.clearPending())
+
+        // Mark in_progress todos as completed since stream ended
+        cleanupInProgressTodos()
+
+        // Create error block
+        const errorBlock = createErrorBlock(assistantMsgId, serializableError, {
+          status: MessageBlockStatus.SUCCESS
+        })
+        await blockManager.handleBlockTransition(errorBlock, MessageBlockType.ERROR)
+        const messageErrorUpdate = {
+          status: isErrorTypeAbort ? AssistantMessageStatus.SUCCESS : AssistantMessageStatus.ERROR
+        }
+        streamingService.updateMessage(assistantMsgId, messageErrorUpdate)
+
+        // 从更新后的 state 中获取需要持久化的 blocks
+        // const blocksToSave = updatedBlockIds.map((id) => streamingService.getBlock(id)).filter(Boolean) as MessageBlock[]
+        await streamingService.finalize(
+          assistantMsgId,
+          isErrorTypeAbort ? AssistantMessageStatus.SUCCESS : AssistantMessageStatus.ERROR
+        )
+
+        void EventEmitter.emit(EVENT_NAMES.MESSAGE_COMPLETE, {
+          id: assistantMsgId,
+          topicId,
+          status: isErrorTypeAbort ? 'pause' : 'error',
+          error: error.message
+        })
+      } finally {
+        updateTopicLoadingAfterStreamSettled()
       }
-
-      // Clean up pending/submitting tool permission requests from this stream.
-      // Preserve 'invoking' entries as they may belong to concurrent streams.
-      store.dispatch(toolPermissionsActions.clearPending())
-
-      // Mark in_progress todos as completed since stream ended
-      cleanupInProgressTodos()
-
-      // Create error block
-      const errorBlock = createErrorBlock(assistantMsgId, serializableError, {
-        status: MessageBlockStatus.SUCCESS
-      })
-      await blockManager.handleBlockTransition(errorBlock, MessageBlockType.ERROR)
-      const messageErrorUpdate = {
-        status: isErrorTypeAbort ? AssistantMessageStatus.SUCCESS : AssistantMessageStatus.ERROR
-      }
-      streamingService.updateMessage(assistantMsgId, messageErrorUpdate)
-
-      // 从更新后的 state 中获取需要持久化的 blocks
-      // const blocksToSave = updatedBlockIds.map((id) => streamingService.getBlock(id)).filter(Boolean) as MessageBlock[]
-      await streamingService.finalize(
-        assistantMsgId,
-        isErrorTypeAbort ? AssistantMessageStatus.SUCCESS : AssistantMessageStatus.ERROR
-      )
-
-      void EventEmitter.emit(EVENT_NAMES.MESSAGE_COMPLETE, {
-        id: assistantMsgId,
-        topicId,
-        status: isErrorTypeAbort ? 'pause' : 'error',
-        error: error.message
-      })
     },
 
     /**
@@ -290,101 +313,120 @@ export const createBaseCallbacks = (deps: BaseCallbacksDependencies) => {
     onComplete: async (status: AssistantMessageStatus, response?: Response) => {
       const finalAssistantMsg = streamingService.getMessage(assistantMsgId)
 
-      if (status === 'success' && finalAssistantMsg) {
-        const possibleBlockId = findBlockIdForCompletion()
+      try {
+        if (status === 'success' && finalAssistantMsg) {
+          const possibleBlockId = findBlockIdForCompletion()
 
-        if (possibleBlockId) {
-          const changes = {
-            status: MessageBlockStatus.SUCCESS
+          if (possibleBlockId) {
+            const changes = {
+              status: MessageBlockStatus.SUCCESS
+            }
+            blockManager.smartBlockUpdate(possibleBlockId, changes, blockManager.lastBlockType!, true)
           }
-          blockManager.smartBlockUpdate(possibleBlockId, changes, blockManager.lastBlockType!, true)
-        }
 
-        const duration = Date.now() - startTime
-        const content = getMainTextContent(finalAssistantMsg)
+          const duration = Date.now() - startTime
+          const content = getMainTextContent(finalAssistantMsg)
 
-        const timeOut = duration > 30 * 1000
-        // Send success notification for long-running messages
-        if ((!isOnHomePage() && timeOut) || (!isFocused() && timeOut)) {
-          await notificationService.send({
-            id: uuid(),
-            type: 'success',
-            title: i18n.t('notification.assistant'),
-            message: content.length > 50 ? content.slice(0, 47) + '...' : content,
-            silent: false,
-            timestamp: Date.now(),
-            source: 'assistant',
-            channel: 'system'
-          })
-        }
-
-        // Rename topic if needed
-        void autoRenameTopic(assistant, topicId)
-
-        // Process usage estimation
-        // For OpenRouter, always use the accurate usage data from API, don't estimate
-        const isOpenRouter = assistant.model?.provider === 'openrouter'
-        if (
-          !isOpenRouter &&
-          response &&
-          (response.usage?.total_tokens === 0 ||
-            response?.usage?.prompt_tokens === 0 ||
-            response?.usage?.completion_tokens === 0)
-        ) {
-          // Use context from task for usage estimation
-          const task = streamingService.getTask(assistantMsgId)
-          if (task?.contextMessages && task.contextMessages.length > 0) {
-            // Include the final assistant message in context for accurate estimation
-            const finalContextWithAssistant = [...task.contextMessages, finalAssistantMsg]
-            const usage = await estimateMessagesUsage({
-              assistant,
-              messages: finalContextWithAssistant
+          const timeOut = duration > 30 * 1000
+          // Send success notification for long-running messages
+          if ((!isOnHomePage() && timeOut) || (!isFocused() && timeOut)) {
+            await notificationService.send({
+              id: uuid(),
+              type: 'success',
+              title: i18n.t('notification.assistant'),
+              message: content.length > 50 ? content.slice(0, 47) + '...' : content,
+              silent: false,
+              timestamp: Date.now(),
+              source: 'assistant',
+              channel: 'system'
             })
-            response.usage = usage
-          } else {
-            logger.debug('Skipping usage estimation - contextMessages not available in task')
           }
-        }
-      }
 
-      // Handle metrics completion_tokens fallback
-      if (response && response.metrics) {
-        if (response.metrics.completion_tokens === 0 && response.usage?.completion_tokens) {
-          response = {
-            ...response,
-            metrics: {
-              ...response.metrics,
-              completion_tokens: response.usage.completion_tokens
+          // Rename topic if needed
+          void autoRenameTopic(assistant, topicId)
+
+          // Process usage estimation
+          // For OpenRouter, always use the accurate usage data from API, don't estimate
+          const isOpenRouter = assistant.model?.provider === 'openrouter'
+          if (
+            !isOpenRouter &&
+            response &&
+            (response.usage?.total_tokens === 0 ||
+              response?.usage?.prompt_tokens === 0 ||
+              response?.usage?.completion_tokens === 0)
+          ) {
+            // Use context from task for usage estimation
+            const task = streamingService.getTask(assistantMsgId)
+            if (task?.contextMessages && task.contextMessages.length > 0) {
+              // Include the final assistant message in context for accurate estimation
+              const finalContextWithAssistant = [...task.contextMessages, finalAssistantMsg]
+              const usage = await estimateMessagesUsage({
+                assistant,
+                messages: finalContextWithAssistant
+              })
+              response.usage = usage
+            } else {
+              logger.debug('Skipping usage estimation - contextMessages not available in task')
             }
           }
         }
-      }
 
-      // Mark in_progress todos as completed since stream ended
-      cleanupInProgressTodos()
+        // Handle metrics completion_tokens fallback
+        if (response && response.metrics) {
+          if (response.metrics.completion_tokens === 0 && response.usage?.completion_tokens) {
+            response = {
+              ...response,
+              metrics: {
+                ...response.metrics,
+                completion_tokens: response.usage.completion_tokens
+              }
+            }
+          }
+        }
 
-      // Update message with final stats before finalize
-      if (response) {
-        streamingService.updateMessage(assistantMsgId, {
-          metrics: response.metrics,
-          usage: response.usage
+        // Mark in_progress todos as completed since stream ended
+        cleanupInProgressTodos()
+
+        // Update message with final stats before finalize
+        if (response) {
+          streamingService.updateMessage(assistantMsgId, {
+            metrics: response.metrics,
+            usage: response.usage
+          })
+        }
+
+        logger.info('Chat stream completion finished', {
+          assistantId: assistant.id,
+          assistantMsgId,
+          topicId,
+          status,
+          modelId: assistant.model?.id,
+          apiModelId: assistant.model ? getModelApiId(assistant.model) : undefined,
+          modelName: assistant.model?.name,
+          providerId: assistant.model?.provider,
+          userPreview: getLastUserContextPreview(),
+          assistantPreview: buildLogPreview(finalAssistantMsg ? getMainTextContent(finalAssistantMsg) : ''),
+          usage: response?.usage,
+          metrics: response?.metrics
         })
+
+        // Finalize session and persist to database
+        await streamingService.finalize(assistantMsgId, status)
+
+        // Track token usage for agent sessions (chat sessions are tracked in fetchChatCompletion)
+        if (status === 'success' && isAgentSessionTopicId(topicId)) {
+          trackTokenUsage({ usage: response?.usage, model: assistant?.model, source: 'agent' })
+        }
+
+        void EventEmitter.emit(EVENT_NAMES.MESSAGE_COMPLETE, {
+          id: assistantMsgId,
+          topicId,
+          status
+        })
+        logger.debug('onComplete finished')
+      } finally {
+        updateTopicLoadingAfterStreamSettled()
       }
-
-      // Finalize session and persist to database
-      await streamingService.finalize(assistantMsgId, status)
-
-      // Track token usage for agent sessions (chat sessions are tracked in fetchChatCompletion)
-      if (status === 'success' && isAgentSessionTopicId(topicId)) {
-        trackTokenUsage({ usage: response?.usage, model: assistant?.model, source: 'agent' })
-      }
-
-      void EventEmitter.emit(EVENT_NAMES.MESSAGE_COMPLETE, {
-        id: assistantMsgId,
-        topicId,
-        status
-      })
-      logger.debug('onComplete finished')
     }
   }
 }

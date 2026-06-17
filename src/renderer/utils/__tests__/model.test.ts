@@ -1,7 +1,7 @@
 import type { Model, ModelTag } from '@renderer/types'
 import { describe, expect, it, vi } from 'vitest'
 
-import { getDuplicateModelNames, getModelTags, isFreeModel } from '../model'
+import { getDuplicateModelNames, getModelApiId, getModelDbId, getModelTags, isFreeModel } from '../model'
 
 // Mock the model checking functions from @renderer/config/models
 vi.mock('@renderer/config/models', () => ({
@@ -90,6 +90,44 @@ describe('model', () => {
         web_search: false
       }
       expect(getModelTags(models_2)).toStrictEqual(expected_2)
+    })
+  })
+
+  describe('getModelApiId', () => {
+    it('returns apiModelId for v2 composite models', () => {
+      expect(
+        getModelApiId({
+          id: 'new-api::gpt-5.4',
+          apiModelId: 'gpt-5.4'
+        })
+      ).toBe('gpt-5.4')
+    })
+
+    it('trims apiModelId before using it', () => {
+      expect(
+        getModelApiId({
+          id: 'new-api::gpt-5.4',
+          apiModelId: ' gpt-5.4 '
+        })
+      ).toBe('gpt-5.4')
+    })
+
+    it('falls back to id for legacy models without apiModelId', () => {
+      expect(getModelApiId({ id: 'gpt-4o' })).toBe('gpt-4o')
+    })
+  })
+
+  describe('getModelDbId', () => {
+    it('returns existing v2 model ids unchanged', () => {
+      expect(getModelDbId({ id: 'new-api::gpt-5.4', provider: 'new-api' })).toBe('new-api::gpt-5.4')
+    })
+
+    it('converts legacy renderer model ids to v2 model ids', () => {
+      expect(getModelDbId({ id: 'qwen', provider: 'cherryai' })).toBe('cherryai::qwen')
+    })
+
+    it('returns undefined when provider is unavailable', () => {
+      expect(getModelDbId({ id: 'qwen', provider: '' })).toBeUndefined()
     })
   })
 

@@ -180,4 +180,26 @@ describe('MessageService', () => {
       expect(path[2].parentId).toBe('m-a2')
     })
   })
+
+  describe('create', () => {
+    it('creates a message with modelId=null when the referenced model is missing', async () => {
+      await dbh.db.insert(topicTable).values({ id: 'topic-missing-model', activeNodeId: null, orderKey: 'a0' })
+
+      const userMessage = await messageService.create('topic-missing-model', {
+        role: 'user',
+        data: mainText('hi'),
+        status: 'success'
+      })
+
+      const assistantMessage = await messageService.create('topic-missing-model', {
+        parentId: userMessage.id,
+        role: 'assistant',
+        data: mainText('reply'),
+        status: 'pending',
+        modelId: createUniqueModelId('provider-a', 'missing-model')
+      })
+
+      expect(assistantMessage.modelId).toBeNull()
+    })
+  })
 })

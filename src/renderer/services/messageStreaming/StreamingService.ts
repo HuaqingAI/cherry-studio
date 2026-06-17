@@ -222,6 +222,10 @@ class StreamingService {
         await dataApiService.patch(`/messages/${task.messageId}`, { body: dataApiPayload })
       }
 
+      this.updateMessage(messageId, {
+        status,
+        updatedAt: new Date().toISOString()
+      })
       this.endTask(messageId)
       logger.debug('Finalized streaming task', { messageId, status })
     } catch (error) {
