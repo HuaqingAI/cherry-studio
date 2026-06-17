@@ -21,7 +21,7 @@ export const FreeTrialModelTag: FC<Props> = ({ model, showLabel = true }) => {
     return null
   }
 
-  let providerId
+  let providerId = model.provider
 
   if (model.id === 'Qwen/Qwen3-8B') {
     providerId = 'cherryin'

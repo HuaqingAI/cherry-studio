@@ -1,1 +1,124 @@
-{"workflow_version":"1.2.0","timestamps":{"started":"2026-05-29T21:15:53.1524770+08:00","last_updated":"2026-05-29T21:15:53.1524770+08:00","completed":"2026-05-29T21:15:53.1524770+08:00"},"mode":"initial_scan","scan_level":"deep","project_root":"D:\\ProgramData\\git\\repository\\github\\huaqingai\\cherry-studio","project_knowledge":"D:\\ProgramData\\git\\repository\\github\\huaqingai\\cherry-studio\\docs","project_types":[{"part_id":"desktop-app","project_type_id":"desktop","display_name":"Electron Desktop Application"},{"part_id":"ui","project_type_id":"library","display_name":"UI Component Library"},{"part_id":"ai-core","project_type_id":"library","display_name":"AI Core Library"},{"part_id":"ai-sdk-provider","project_type_id":"library","display_name":"AI SDK Provider Library"},{"part_id":"provider-registry","project_type_id":"library","display_name":"Provider Registry Library"},{"part_id":"mcp-trace","project_type_id":"library","display_name":"Tracing Utility Library"},{"part_id":"extension-table-plus","project_type_id":"library","display_name":"Editor Extension Library"},{"part_id":"vectorstores-libsql","project_type_id":"library","display_name":"Vector Store Library"}],"completed_steps":[{"step":"step_1","status":"completed","timestamp":"2026-05-29T21:15:53.1524770+08:00","summary":"Classified repository as a monorepo centered on one Electron desktop app with 7 internal library packages"},{"step":"step_2","status":"completed","timestamp":"2026-05-29T21:15:53.1524770+08:00","summary":"Inventoried existing documentation in docs/, top-level guides, and directory-level READMEs used as local conventions"},{"step":"step_3","status":"completed","timestamp":"2026-05-29T21:15:53.1524770+08:00","summary":"Captured stack summary: Electron 41, React 19, TypeScript, Tailwind CSS v4, Drizzle ORM, SQLite, Vitest, Playwright, pnpm workspaces"},{"step":"step_4","status":"completed","timestamp":"2026-05-29T21:15:53.1524770+08:00","summary":"Completed conditional analysis of API server, data models, state layers, window architecture, workspace packages, CI, and packaging configuration"},{"step":"step_5","status":"completed","timestamp":"2026-05-29T21:15:53.1524770+08:00","summary":"Generated annotated source tree analysis for root app, core directories, and internal workspace packages"},{"step":"step_6","status":"completed","timestamp":"2026-05-29T21:15:53.1524770+08:00","summary":"Documented development and release pipeline from package scripts, CI workflow, and electron-builder configuration"},{"step":"step_7","status":"completed","timestamp":"2026-05-29T21:15:53.1524770+08:00","summary":"Mapped integration boundaries across renderer, preload IPC, main-process services, DataApi, HTTP API, MCP, and internal packages"},{"step":"step_8","status":"completed","timestamp":"2026-05-29T21:15:53.1524770+08:00","summary":"Wrote consolidated architecture documentation covering startup phases, service lifecycle, renderer windows, data systems, and package roles"},{"step":"step_9","status":"completed","timestamp":"2026-05-29T21:15:53.1524770+08:00","summary":"Wrote supporting docs: project overview, component inventory, development guide, deployment guide, contribution guide, API contracts, data models, integration architecture, and project parts metadata"},{"step":"step_10","status":"completed","timestamp":"2026-05-29T21:15:53.1524770+08:00","summary":"Generated master docs index as the primary navigation entry for AI-assisted development"},{"step":"step_11","status":"completed","timestamp":"2026-05-29T21:15:53.1524770+08:00","summary":"Validated generated files exist, JSON metadata parses, and index links target generated documents"},{"step":"step_12","status":"completed","timestamp":"2026-05-29T21:15:53.1524770+08:00","summary":"Workflow complete"}],"current_step":"completed","findings":{"project_classification":"Monorepo with one primary Electron desktop application and internal workspace libraries for UI, AI core, provider registry, tracing, editor extensions, and vector storage","technology_stack":"Electron 41 + React 19 + TypeScript + Tailwind CSS v4 + Drizzle ORM + SQLite + pnpm workspaces + Vitest + Playwright","existing_docs":"Large pre-existing documentation surface in docs/ plus multiple local README files under src/, packages/, tests/, migrations/, and v2-refactor-temp/","architecture":"Preboot/bootstrap/running startup phases, lifecycle-managed main-process services, multi-window renderer structure, explicit four-system data model, and workspace package reuse","api_surface":"Renderer-preload IPC API, internal DataApi schemas, local HTTP API, MCP routes, and agent session streaming","data_model":"Conversation, assistant, file, knowledge, provider/model, agent, job, and app-state domains are modeled in SQLite via Drizzle schemas"},"outputs_generated":["project-scan-report.json","project-parts.json","index.md","project-overview.md","architecture.md","source-tree-analysis.md","component-inventory.md","development-guide.md","deployment-guide.md","contribution-guide.md","api-contracts.md","data-models.md","integration-architecture.md"],"resume_instructions":"Documentation scan finished. Re-run document-project in full_rescan mode to refresh these artifacts after major architecture changes.","verification_summary":"Read and synthesized root/package manifests, architecture docs, local READMEs, service registry, API routes, schema files, CI workflow, and packaging config. Confirmed generated docs and JSON metadata exist under docs/.","open_risks":"This was a deep but selective scan, not a literal read of every source file. Some fine-grained module details in rapidly changing v2 areas may drift before the next rescan.","next_checks":"If these docs will be used for a large PRD or migration plan, spot-check the referenced subsystem docs under docs/references/ against the latest implementation before acting on edge-case behavior."}
+{
+  "workflow_version": "1.2.0",
+  "timestamps": {
+    "started": "2026-05-29T21:15:53.1524770+08:00",
+    "last_updated": "2026-05-29T21:15:53.1524770+08:00",
+    "completed": "2026-05-29T21:15:53.1524770+08:00"
+  },
+  "mode": "initial_scan",
+  "scan_level": "deep",
+  "project_root": "D:\\ProgramData\\git\\repository\\github\\huaqingai\\cherry-studio",
+  "project_knowledge": "D:\\ProgramData\\git\\repository\\github\\huaqingai\\cherry-studio\\docs",
+  "project_types": [
+    { "part_id": "desktop-app", "project_type_id": "desktop", "display_name": "Electron Desktop Application" },
+    { "part_id": "ui", "project_type_id": "library", "display_name": "UI Component Library" },
+    { "part_id": "ai-core", "project_type_id": "library", "display_name": "AI Core Library" },
+    { "part_id": "ai-sdk-provider", "project_type_id": "library", "display_name": "AI SDK Provider Library" },
+    { "part_id": "provider-registry", "project_type_id": "library", "display_name": "Provider Registry Library" },
+    { "part_id": "mcp-trace", "project_type_id": "library", "display_name": "Tracing Utility Library" },
+    { "part_id": "extension-table-plus", "project_type_id": "library", "display_name": "Editor Extension Library" },
+    { "part_id": "vectorstores-libsql", "project_type_id": "library", "display_name": "Vector Store Library" }
+  ],
+  "completed_steps": [
+    {
+      "step": "step_1",
+      "status": "completed",
+      "timestamp": "2026-05-29T21:15:53.1524770+08:00",
+      "summary": "Classified repository as a monorepo centered on one Electron desktop app with 7 internal library packages"
+    },
+    {
+      "step": "step_2",
+      "status": "completed",
+      "timestamp": "2026-05-29T21:15:53.1524770+08:00",
+      "summary": "Inventoried existing documentation in docs/, top-level guides, and directory-level READMEs used as local conventions"
+    },
+    {
+      "step": "step_3",
+      "status": "completed",
+      "timestamp": "2026-05-29T21:15:53.1524770+08:00",
+      "summary": "Captured stack summary: Electron 41, React 19, TypeScript, Tailwind CSS v4, Drizzle ORM, SQLite, Vitest, Playwright, pnpm workspaces"
+    },
+    {
+      "step": "step_4",
+      "status": "completed",
+      "timestamp": "2026-05-29T21:15:53.1524770+08:00",
+      "summary": "Completed conditional analysis of API server, data models, state layers, window architecture, workspace packages, CI, and packaging configuration"
+    },
+    {
+      "step": "step_5",
+      "status": "completed",
+      "timestamp": "2026-05-29T21:15:53.1524770+08:00",
+      "summary": "Generated annotated source tree analysis for root app, core directories, and internal workspace packages"
+    },
+    {
+      "step": "step_6",
+      "status": "completed",
+      "timestamp": "2026-05-29T21:15:53.1524770+08:00",
+      "summary": "Documented development and release pipeline from package scripts, CI workflow, and electron-builder configuration"
+    },
+    {
+      "step": "step_7",
+      "status": "completed",
+      "timestamp": "2026-05-29T21:15:53.1524770+08:00",
+      "summary": "Mapped integration boundaries across renderer, preload IPC, main-process services, DataApi, HTTP API, MCP, and internal packages"
+    },
+    {
+      "step": "step_8",
+      "status": "completed",
+      "timestamp": "2026-05-29T21:15:53.1524770+08:00",
+      "summary": "Wrote consolidated architecture documentation covering startup phases, service lifecycle, renderer windows, data systems, and package roles"
+    },
+    {
+      "step": "step_9",
+      "status": "completed",
+      "timestamp": "2026-05-29T21:15:53.1524770+08:00",
+      "summary": "Wrote supporting docs: project overview, component inventory, development guide, deployment guide, contribution guide, API contracts, data models, integration architecture, and project parts metadata"
+    },
+    {
+      "step": "step_10",
+      "status": "completed",
+      "timestamp": "2026-05-29T21:15:53.1524770+08:00",
+      "summary": "Generated master docs index as the primary navigation entry for AI-assisted development"
+    },
+    {
+      "step": "step_11",
+      "status": "completed",
+      "timestamp": "2026-05-29T21:15:53.1524770+08:00",
+      "summary": "Validated generated files exist, JSON metadata parses, and index links target generated documents"
+    },
+    {
+      "step": "step_12",
+      "status": "completed",
+      "timestamp": "2026-05-29T21:15:53.1524770+08:00",
+      "summary": "Workflow complete"
+    }
+  ],
+  "current_step": "completed",
+  "findings": {
+    "project_classification": "Monorepo with one primary Electron desktop application and internal workspace libraries for UI, AI core, provider registry, tracing, editor extensions, and vector storage",
+    "technology_stack": "Electron 41 + React 19 + TypeScript + Tailwind CSS v4 + Drizzle ORM + SQLite + pnpm workspaces + Vitest + Playwright",
+    "existing_docs": "Large pre-existing documentation surface in docs/ plus multiple local README files under src/, packages/, tests/, migrations/, and v2-refactor-temp/",
+    "architecture": "Preboot/bootstrap/running startup phases, lifecycle-managed main-process services, multi-window renderer structure, explicit four-system data model, and workspace package reuse",
+    "api_surface": "Renderer-preload IPC API, internal DataApi schemas, local HTTP API, MCP routes, and agent session streaming",
+    "data_model": "Conversation, assistant, file, knowledge, provider/model, agent, job, and app-state domains are modeled in SQLite via Drizzle schemas"
+  },
+  "outputs_generated": [
+    "project-scan-report.json",
+    "project-parts.json",
+    "index.md",
+    "project-overview.md",
+    "architecture.md",
+    "source-tree-analysis.md",
+    "component-inventory.md",
+    "development-guide.md",
+    "deployment-guide.md",
+    "contribution-guide.md",
+    "api-contracts.md",
+    "data-models.md",
+    "integration-architecture.md"
+  ],
+  "resume_instructions": "Documentation scan finished. Re-run document-project in full_rescan mode to refresh these artifacts after major architecture changes.",
+  "verification_summary": "Read and synthesized root/package manifests, architecture docs, local READMEs, service registry, API routes, schema files, CI workflow, and packaging config. Confirmed generated docs and JSON metadata exist under docs/.",
+  "open_risks": "This was a deep but selective scan, not a literal read of every source file. Some fine-grained module details in rapidly changing v2 areas may drift before the next rescan.",
+  "next_checks": "If these docs will be used for a large PRD or migration plan, spot-check the referenced subsystem docs under docs/references/ against the latest implementation before acting on edge-case behavior."
+}

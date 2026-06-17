@@ -1,8 +1,10 @@
 import { usePreference } from '@data/hooks/usePreference'
+import { loggerService } from '@logger'
 import AddAssistantPopup from '@renderer/components/Popups/AddAssistantPopup'
 import { useAssistants, useDefaultAssistant } from '@renderer/hooks/useAssistant'
 import { useNavbarPosition } from '@renderer/hooks/useNavbar'
 import { useShowTopics } from '@renderer/hooks/useStore'
+import { createAssistantWithDefaultTopic } from '@renderer/services/AssistantService'
 import { EVENT_NAMES, EventEmitter } from '@renderer/services/EventService'
 import type { Assistant, Topic } from '@renderer/types'
 import type { Tab } from '@renderer/types/chat'
@@ -42,6 +44,7 @@ const HomeTabs: FC<Props> = ({
   const { toggleShowTopics } = useShowTopics()
   const { isLeftNavbar } = useNavbarPosition()
   const { t } = useTranslation()
+  const logger = loggerService.withContext('HomeTabs')
 
   const [tab, setTab] = useState<Tab>(position === 'left' ? _tab || 'assistants' : 'topic')
   const borderStyle = '0.5px solid var(--color-border)'
@@ -63,10 +66,15 @@ const HomeTabs: FC<Props> = ({
     }
   }
 
-  const onCreateDefaultAssistant = () => {
-    const assistant = { ...defaultAssistant, id: uuid() }
-    addAssistant(assistant)
-    setActiveAssistant(assistant)
+  const onCreateDefaultAssistant = async () => {
+    try {
+      const assistant = await createAssistantWithDefaultTopic({ ...defaultAssistant, id: uuid() })
+      addAssistant(assistant)
+      setActiveAssistant(assistant)
+    } catch (error) {
+      logger.error('Failed to create default assistant', error as Error)
+      window.toast.error(t('message.error.unknown'))
+    }
   }
 
   useEffect(() => {

@@ -30,6 +30,7 @@ import type { WebSearchState } from '@renderer/types'
 import { type Assistant, getEffectiveMcpMode, type MCPTool, type Provider, SystemProviderIds } from '@renderer/types'
 import type { StreamTextParams } from '@renderer/types/aiCoreTypes'
 import { IdleTimeoutController, type IdleTimeoutHandle } from '@renderer/utils/IdleTimeoutController'
+import { getModelApiId } from '@renderer/utils/model'
 import { replacePromptVariables } from '@renderer/utils/prompt'
 import { isAIGatewayProvider, isAwsBedrockProvider, isSupportUrlContextProvider } from '@renderer/utils/provider'
 import { DEFAULT_TIMEOUT } from '@shared/config/constant'
@@ -240,7 +241,7 @@ export async function buildStreamTextParams(
 
   return {
     params,
-    modelId: model.id,
+    modelId: getModelApiId(model),
     capabilities: { enableReasoning, enableWebSearch, enableGenerateImage, enableUrlContext },
     webSearchPluginConfig,
     idleTimeout

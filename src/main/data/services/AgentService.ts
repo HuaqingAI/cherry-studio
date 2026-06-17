@@ -305,7 +305,6 @@ export class AgentService {
 
   async deleteAgent(id: string): Promise<boolean> {
     const dbService = application.get('DbService')
-    const database = dbService.getDb()
     const agent = await this.findAgentRow(id)
 
     if (!agent) {

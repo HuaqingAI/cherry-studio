@@ -9,11 +9,7 @@
       "name": "Cherry Studio Desktop App",
       "type": "desktop",
       "root": ".",
-      "entry_points": [
-        "src/main/index.ts",
-        "src/preload/index.ts",
-        "src/renderer/windows/main/index.html"
-      ],
+      "entry_points": ["src/main/index.ts", "src/preload/index.ts", "src/renderer/windows/main/index.html"],
       "description": "Electron desktop application containing main, preload, renderer, data layer, API server, knowledge, MCP, and agent systems."
     },
     {
@@ -21,9 +17,7 @@
       "name": "@cherrystudio/ui",
       "type": "library",
       "root": "packages/ui",
-      "entry_points": [
-        "packages/ui/src/index.ts"
-      ],
+      "entry_points": ["packages/ui/src/index.ts"],
       "description": "Internal UI design system package built on Tailwind CSS v4 and React."
     },
     {
@@ -31,9 +25,7 @@
       "name": "@cherrystudio/ai-core",
       "type": "library",
       "root": "packages/aiCore",
-      "entry_points": [
-        "packages/aiCore/src/index.ts"
-      ],
+      "entry_points": ["packages/aiCore/src/index.ts"],
       "description": "Unified AI provider abstraction and plugin-enabled execution layer."
     },
     {
@@ -41,9 +33,7 @@
       "name": "@cherrystudio/ai-sdk-provider",
       "type": "library",
       "root": "packages/ai-sdk-provider",
-      "entry_points": [
-        "packages/ai-sdk-provider/src/index.ts"
-      ],
+      "entry_points": ["packages/ai-sdk-provider/src/index.ts"],
       "description": "CherryIN-oriented provider adapter for the Vercel AI SDK ecosystem."
     },
     {
@@ -51,10 +41,7 @@
       "name": "@cherrystudio/provider-registry",
       "type": "library",
       "root": "packages/provider-registry",
-      "entry_points": [
-        "packages/provider-registry/src/index.ts",
-        "packages/provider-registry/src/registry-loader.ts"
-      ],
+      "entry_points": ["packages/provider-registry/src/index.ts", "packages/provider-registry/src/registry-loader.ts"],
       "description": "Static provider and model registry data plus loader utilities."
     },
     {
@@ -74,9 +61,7 @@
       "name": "@cherrystudio/extension-table-plus",
       "type": "library",
       "root": "packages/extension-table-plus",
-      "entry_points": [
-        "packages/extension-table-plus/src/index.ts"
-      ],
+      "entry_points": ["packages/extension-table-plus/src/index.ts"],
       "description": "TipTap table extension fork used by the editor stack."
     },
     {
@@ -84,9 +69,7 @@
       "name": "@vectorstores/libsql",
       "type": "library",
       "root": "packages/vectorstores/libsql",
-      "entry_points": [
-        "packages/vectorstores/libsql/src/index.ts"
-      ],
+      "entry_points": ["packages/vectorstores/libsql/src/index.ts"],
       "description": "libSQL-backed vector store implementation used by knowledge features."
     }
   ],

@@ -4,7 +4,7 @@ import { useAssistants, useDefaultAssistant } from '@renderer/hooks/useAssistant
 import { useAssistantPresets } from '@renderer/hooks/useAssistantPresets'
 import { useTimer } from '@renderer/hooks/useTimer'
 import { useSystemAssistantPresets } from '@renderer/pages/store/assistants/presets'
-import { createAssistantFromAgent } from '@renderer/services/AssistantService'
+import { createAssistantFromAgent, createAssistantWithDefaultTopic } from '@renderer/services/AssistantService'
 import { EVENT_NAMES, EventEmitter } from '@renderer/services/EventService'
 import type { Assistant, AssistantPreset } from '@renderer/types'
 import { uuid } from '@renderer/utils'
@@ -77,7 +77,7 @@ const PopupContainer: React.FC<Props> = ({ resolve }) => {
       let assistant: Assistant
 
       if (preset.id === 'default') {
-        assistant = { ...preset, id: uuid() }
+        assistant = await createAssistantWithDefaultTopic({ ...preset, id: uuid() })
         addAssistant(assistant)
       } else {
         assistant = await createAssistantFromAgent(preset)

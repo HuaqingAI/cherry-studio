@@ -19,6 +19,18 @@ const logger = loggerService.withContext('DataApiMessageDataSource')
 
 const FETCH_LIMIT = 999
 
+function isTopicNotFoundError(error: unknown, topicId: string): boolean {
+  if (!error || typeof error !== 'object') {
+    return false
+  }
+
+  const maybeError = error as { code?: unknown; status?: unknown; details?: { resource?: unknown; id?: unknown } }
+  return (
+    maybeError.code === ErrorCode.NOT_FOUND ||
+    (maybeError.status === 404 && maybeError.details?.resource === 'Topic' && maybeError.details.id === topicId)
+  )
+}
+
 /**
  * Fetch messages for a topic from the Data API and convert to renderer format.
  */
@@ -59,8 +71,8 @@ export async function fetchMessagesFromDataApi(topicId: string): Promise<{
     })
 
     return { messages, blocks }
-  } catch (error: any) {
-    if (error?.code === ErrorCode.NOT_FOUND) {
+  } catch (error) {
+    if (isTopicNotFoundError(error, topicId)) {
       logger.debug(`Topic ${topicId} not found in Data API, returning empty`)
       return { messages: [], blocks: [] }
     }

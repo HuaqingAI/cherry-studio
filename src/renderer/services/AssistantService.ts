@@ -1,3 +1,4 @@
+import { dataApiService } from '@data/DataApiService'
 import { preferenceService } from '@data/PreferenceService'
 import { loggerService } from '@logger'
 import {
@@ -22,7 +23,10 @@ import type {
   Topic,
   TranslateAssistant
 } from '@renderer/types'
+import type { CreateAssistantDto } from '@shared/data/api/schemas/assistants'
 import type { CreateTopicDto } from '@shared/data/api/schemas/topics'
+import type { Assistant as SharedAssistant } from '@shared/data/types/assistant'
+import type { Topic as SharedTopic } from '@shared/data/types/topic'
 import type { TranslateLanguage } from '@shared/data/types/translate'
 import { v4 as uuid } from 'uuid'
 
@@ -177,6 +181,55 @@ export function mapLegacyTopicToDto(topic: Topic): CreateTopicDto {
   }
 }
 
+function mapSharedTopicToLegacyTopic(topic: SharedTopic): Topic {
+  return {
+    id: topic.id,
+    assistantId: topic.assistantId ?? '',
+    createdAt: topic.createdAt,
+    updatedAt: topic.updatedAt,
+    name: topic.name,
+    messages: [],
+    isNameManuallyEdited: topic.isNameManuallyEdited
+  }
+}
+
+function mapSharedAssistantToLegacyAssistant(
+  assistant: SharedAssistant,
+  template: Assistant,
+  topic: SharedTopic
+): Assistant {
+  return {
+    ...template,
+    id: assistant.id,
+    name: assistant.name,
+    prompt: assistant.prompt,
+    emoji: assistant.emoji,
+    description: assistant.description,
+    topics: [mapSharedTopicToLegacyTopic(topic)]
+  }
+}
+
+function mapLegacyAssistantToCreateDto(assistant: Assistant): CreateAssistantDto {
+  return {
+    name: assistant.name,
+    prompt: assistant.prompt,
+    emoji: assistant.emoji || undefined,
+    description: assistant.description
+  }
+}
+
+export async function createAssistantWithDefaultTopic(template: Assistant): Promise<Assistant> {
+  const createdAssistant = await dataApiService.post('/assistants', {
+    body: mapLegacyAssistantToCreateDto(template)
+  })
+  const topic = getDefaultTopic(createdAssistant.id)
+  const createdTopic = await dataApiService.post('/topics', {
+    body: mapLegacyTopicToDto(topic)
+  })
+
+  return mapSharedAssistantToLegacyAssistant(createdAssistant, template, createdTopic)
+}
+
 export function getDefaultProvider() {
   return getProviderByModel(getDefaultModel())
 }
@@ -284,9 +337,11 @@ export async function createAssistantFromAgent(agent: AssistantPreset) {
     settings: agent.settings || DEFAULT_ASSISTANT_SETTINGS
   }
 
-  store.dispatch(addAssistant(assistant))
+  const createdAssistant = await createAssistantWithDefaultTopic(assistant)
+
+  store.dispatch(addAssistant(createdAssistant))
 
   window.toast.success(i18n.t('message.assistant.added.content'))
 
-  return assistant
+  return createdAssistant
 }

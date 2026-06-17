@@ -1,10 +1,12 @@
 import { usePreference } from '@data/hooks/usePreference'
+import { loggerService } from '@logger'
 import { ErrorBoundary } from '@renderer/components/ErrorBoundary'
 import { useAssistants } from '@renderer/hooks/useAssistant'
 import { useNavbarPosition } from '@renderer/hooks/useNavbar'
 import { useShortcut } from '@renderer/hooks/useShortcuts'
 import { useShowAssistants, useShowTopics } from '@renderer/hooks/useStore'
 import { useActiveTopic } from '@renderer/hooks/useTopic'
+import { createAssistantWithDefaultTopic } from '@renderer/services/AssistantService'
 import { EVENT_NAMES, EventEmitter } from '@renderer/services/EventService'
 import NavigationService from '@renderer/services/NavigationService'
 import { newMessagesActions } from '@renderer/store/newMessage'
@@ -13,7 +15,7 @@ import { MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH, SECOND_MIN_WINDOW_WIDTH } from '@s
 import { useLocation, useNavigate } from '@tanstack/react-router'
 import { AnimatePresence, motion } from 'motion/react'
 import type { FC } from 'react'
-import { startTransition, useCallback, useEffect, useState } from 'react'
+import { startTransition, useCallback, useEffect, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import styled from 'styled-components'
 
@@ -23,8 +25,14 @@ import HomeTabs from './Tabs'
 
 let _activeAssistant: Assistant
 
+const logger = loggerService.withContext('HomePage')
+
+function isTemporaryDefaultAssistant(assistant?: Assistant): boolean {
+  return assistant?.id === 'default' || assistant?.topics?.some((topic) => topic.assistantId === 'default') === true
+}
+
 const HomePage: FC = () => {
-  const { assistants } = useAssistants()
+  const { assistants, updateAssistants } = useAssistants()
   const navigate = useNavigate()
   const { isLeftNavbar } = useNavbarPosition()
 
@@ -42,6 +50,9 @@ const HomePage: FC = () => {
   const { setShowAssistants, toggleShowAssistants } = useShowAssistants()
   const { toggleShowTopics } = useShowTopics()
   const dispatch = useDispatch()
+  const defaultAssistantUpgradeRef = useRef<string | null>(null)
+  const [isDefaultAssistantUpgrading, setIsDefaultAssistantUpgrading] = useState(false)
+  const [defaultAssistantUpgradeFailed, setDefaultAssistantUpgradeFailed] = useState(false)
 
   _activeAssistant = activeAssistant
 
@@ -103,6 +114,39 @@ const HomePage: FC = () => {
     [_setActiveTopic, dispatch]
   )
 
+  const shouldUpgradeDefaultAssistant = !defaultAssistantUpgradeFailed && isTemporaryDefaultAssistant(activeAssistant)
+
+  useEffect(() => {
+    if (!activeAssistant || !shouldUpgradeDefaultAssistant) {
+      return
+    }
+
+    if (defaultAssistantUpgradeRef.current === activeAssistant.id) {
+      return
+    }
+
+    defaultAssistantUpgradeRef.current = activeAssistant.id
+    setIsDefaultAssistantUpgrading(true)
+
+    void createAssistantWithDefaultTopic(activeAssistant)
+      .then((assistant) => {
+        const hasCurrentAssistant = assistants.some((item) => item.id === activeAssistant.id)
+        updateAssistants(
+          hasCurrentAssistant
+            ? assistants.map((item) => (item.id === activeAssistant.id ? assistant : item))
+            : [assistant, ...assistants]
+        )
+        setActiveAssistant(assistant)
+      })
+      .catch((error) => {
+        logger.error('Failed to initialize default assistant in DataApi', error as Error)
+        setDefaultAssistantUpgradeFailed(true)
+      })
+      .finally(() => {
+        setIsDefaultAssistantUpgrading(false)
+      })
+  }, [activeAssistant, assistants, setActiveAssistant, shouldUpgradeDefaultAssistant, updateAssistants])
+
   useEffect(() => {
     NavigationService.setNavigate(navigate)
   }, [navigate])
@@ -121,6 +165,10 @@ const HomePage: FC = () => {
       void window.api.window.resetMinimumSize()
     }
   }, [showAssistants, showTopics, topicPosition])
+
+  if (shouldUpgradeDefaultAssistant || isDefaultAssistantUpgrading) {
+    return <Container id="home-page" />
+  }
 
   return (
     <Container id="home-page">

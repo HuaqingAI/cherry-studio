@@ -32,6 +32,10 @@ export class AiSdkToChunkAdapter {
   private responseStartTimestamp: number | null = null
   private firstTokenTimestamp: number | null = null
   private hasTextContent = false
+  private hasCompletedText = false
+  private lastTextContent = ''
+  private sawFinish = false
+  private sawTerminalError = false
   private getSessionWasCleared?: () => boolean
   private providerId?: string
   private idleTimeout?: IdleTimeoutHandle
@@ -64,6 +68,44 @@ export class AiSdkToChunkAdapter {
   private resetTimingState() {
     this.responseStartTimestamp = null
     this.firstTokenTimestamp = null
+  }
+
+  private buildFallbackResponse(final: { text: string; reasoningContent: string }) {
+    const metrics = this.buildMetrics()
+    return {
+      text: final.text || this.lastTextContent || '',
+      reasoning_content: final.reasoningContent || '',
+      usage: {
+        completion_tokens: 0,
+        prompt_tokens: 0,
+        total_tokens: 0
+      },
+      metrics: metrics ? { ...metrics } : undefined
+    }
+  }
+
+  private emitFallbackCompleteIfNeeded(final: {
+    text: string
+    reasoningContent: string
+    providerMetadata: ProviderMetadata | undefined
+  }) {
+    if (this.sawFinish || this.sawTerminalError || (!this.hasTextContent && !final.reasoningContent)) {
+      return
+    }
+
+    const response = this.buildFallbackResponse(final)
+    this.emitThinkingCompleteIfNeeded(final)
+
+    if (final.text && !this.hasCompletedText) {
+      this.onChunk({
+        type: ChunkType.TEXT_COMPLETE,
+        text: final.text,
+        providerMetadata: final.providerMetadata
+      })
+    }
+
+    this.onChunk({ type: ChunkType.BLOCK_COMPLETE, response })
+    this.onChunk({ type: ChunkType.LLM_RESPONSE_COMPLETE, response })
   }
 
   /**
@@ -110,6 +152,10 @@ export class AiSdkToChunkAdapter {
     // Reset state at the start of stream
     this.isFirstChunk = true
     this.hasTextContent = false
+    this.hasCompletedText = false
+    this.lastTextContent = ''
+    this.sawFinish = false
+    this.sawTerminalError = false
 
     try {
       while (true) {
@@ -123,6 +169,13 @@ export class AiSdkToChunkAdapter {
           if (this.enableWebSearch) {
             const remainingText = flushLinkConverterBuffer()
             if (remainingText) {
+              if (this.accumulate) {
+                final.text += remainingText
+              } else {
+                final.text = remainingText
+              }
+              this.hasTextContent = true
+              this.lastTextContent = final.text
               this.markFirstTokenIfNeeded()
               this.onChunk({
                 type: ChunkType.TEXT_DELTA,
@@ -130,6 +183,7 @@ export class AiSdkToChunkAdapter {
               })
             }
           }
+          this.emitFallbackCompleteIfNeeded(final)
           break
         }
 
@@ -226,6 +280,7 @@ export class AiSdkToChunkAdapter {
         } else {
           final.text = finalText
         }
+        this.lastTextContent = final.text
 
         // Extract thoughtSignature from providerMetadata.google and preserve it
         const newSignature = chunk.providerMetadata?.google?.thoughtSignature as string | undefined
@@ -256,6 +311,8 @@ export class AiSdkToChunkAdapter {
           text: (chunk.providerMetadata?.text?.value as string) ?? final.text ?? '',
           providerMetadata: final.providerMetadata
         })
+        this.hasCompletedText = true
+        this.lastTextContent = (chunk.providerMetadata?.text?.value as string) ?? final.text ?? this.lastTextContent
         final.text = ''
         // Clear providerMetadata for next text block
         final.providerMetadata = undefined
@@ -352,6 +409,7 @@ export class AiSdkToChunkAdapter {
       }
 
       case 'finish': {
+        this.sawFinish = true
         // Check if session was cleared (e.g., /clear command) and no text was output
         const sessionCleared = this.getSessionWasCleared?.() ?? false
         if (sessionCleared && !this.hasTextContent) {
@@ -421,12 +479,14 @@ export class AiSdkToChunkAdapter {
         })
         break
       case 'abort':
+        this.sawTerminalError = true
         this.onChunk({
           type: ChunkType.ERROR,
           error: new DOMException('Request was aborted', 'AbortError')
         })
         break
       case 'error':
+        this.sawTerminalError = true
         this.onChunk({
           type: ChunkType.ERROR,
           error: AISDKError.isInstance(chunk.error)

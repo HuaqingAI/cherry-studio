@@ -55,7 +55,11 @@ export function matchKeywordsInProvider(keywords: string | string[], provider: P
  * @returns 匹配所有关键词则返回 true
  */
 export function matchKeywordsInModel(keywords: string | string[], model: Model, provider?: Provider): boolean {
-  const fullName = `${model.name} ${model.id} ${provider ? getProviderSearchString(provider) : ''}`
+  const displayModelId =
+    'apiModelId' in model && typeof model.apiModelId === 'string' && model.apiModelId.trim()
+      ? model.apiModelId
+      : model.id
+  const fullName = `${model.name} ${displayModelId} ${provider ? getProviderSearchString(provider) : ''}`
   return includeKeywords(fullName, keywords)
 }
 

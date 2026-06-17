@@ -4,7 +4,7 @@ import { agentTable } from '@data/db/schemas/agent'
 import { agentChannelTable } from '@data/db/schemas/agentChannel'
 import { agentSessionTable } from '@data/db/schemas/agentSession'
 import { agentSessionMessageTable } from '@data/db/schemas/agentSessionMessage'
-import { agentTaskTable, agentTaskRunLogTable } from '@data/db/schemas/agentTask'
+import { agentTaskRunLogTable, agentTaskTable } from '@data/db/schemas/agentTask'
 import { userModelTable } from '@data/db/schemas/userModel'
 import { userProviderTable } from '@data/db/schemas/userProvider'
 import { agentService } from '@data/services/AgentService'
@@ -213,13 +213,15 @@ describe('AgentService', () => {
       expect(deleted).toBe(true)
       expect(await dbh.db.select().from(agentSessionTable).where(eq(agentSessionTable.agentId, id))).toHaveLength(0)
       expect(await dbh.db.select().from(agentSessionMessageTable)).toHaveLength(0)
-      expect((await dbh.db.select().from(agentChannelTable).where(eq(agentChannelTable.id, 'agent_cleanup_channel_001')))[0]).toMatchObject({
+      expect(
+        (await dbh.db.select().from(agentChannelTable).where(eq(agentChannelTable.id, 'agent_cleanup_channel_001')))[0]
+      ).toMatchObject({
         agentId: null,
         sessionId: null
       })
       expect(
-        (await dbh.db.select().from(agentTaskRunLogTable).where(eq(agentTaskRunLogTable.taskId, taskId)))[0].sessionId
-      ).toBeNull()
+        await dbh.db.select().from(agentTaskRunLogTable).where(eq(agentTaskRunLogTable.taskId, taskId))
+      ).toHaveLength(0)
     })
   })
 

@@ -51,6 +51,12 @@ interface Props extends SelectModelPopupParams {
   resolve: (value: Model | undefined) => void
 }
 
+function getDisplayModelId(model: Model): string {
+  return 'apiModelId' in model && typeof model.apiModelId === 'string' && model.apiModelId.trim()
+    ? model.apiModelId
+    : model.id
+}
+
 const SelectModelPopupView: React.FC<Props> = ({
   providers,
   model,
@@ -139,11 +145,11 @@ const SelectModelPopupView: React.FC<Props> = ({
           <ModelName>
             <div className="flex min-w-0 flex-1 items-center gap-1.5">
               <span className="min-w-0 truncate">{model.name}</span>
-              {showIdentifier && model.id !== model.name && (
+              {showIdentifier && getDisplayModelId(model) !== model.name && (
                 <span
                   className="min-w-0 max-w-[45%] shrink truncate font-mono text-[12px] text-[var(--color-text-3)]"
-                  title={model.id}>
-                  {model.id}
+                  title={getDisplayModelId(model)}>
+                  {getDisplayModelId(model)}
                 </span>
               )}
               {isPinned && <span className="whitespace-nowrap text-[var(--color-text-3)]">| {groupName}</span>}
@@ -157,7 +163,7 @@ const SelectModelPopupView: React.FC<Props> = ({
           </TagsContainer>
         ),
         icon: (() => {
-          const Icon = getModelLogo(model)
+          const Icon = getModelLogo({ ...model, id: getDisplayModelId(model) })
           return Icon ? (
             <Icon.Avatar size={20} />
           ) : (

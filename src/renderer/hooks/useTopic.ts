@@ -32,11 +32,11 @@ export function useActiveTopic(assistantId: string, topic?: Topic) {
   _setActiveTopic = setActiveTopic
 
   useEffect(() => {
-    if (activeTopic) {
+    if (activeTopic && assistantId !== 'default' && activeTopic.assistantId !== 'default') {
       void store.dispatch(loadTopicMessagesThunk(activeTopic.id))
       void EventEmitter.emit(EVENT_NAMES.CHANGE_TOPIC, activeTopic)
     }
-  }, [activeTopic])
+  }, [activeTopic, assistantId])
 
   useEffect(() => {
     // activeTopic not in assistant.topics

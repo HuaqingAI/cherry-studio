@@ -7,6 +7,7 @@ import { addSpan, endSpan } from '@renderer/services/SpanManagerService'
 import type { Assistant, EditImageParams, GenerateImageParams, Model, Provider } from '@renderer/types'
 import type { StreamTextParams } from '@renderer/types/aiCoreTypes'
 import { getLowerBaseModelName } from '@renderer/utils'
+import { getModelApiId } from '@renderer/utils/model'
 import type { StartSpanParams } from '@renderer/windows/trace/types/ModelSpanEntity'
 
 import AiSdkToChunkAdapter from './chunk/AiSdkToChunkAdapter'
@@ -326,7 +327,7 @@ export default class AiProvider {
 
     // 使用 AI SDK embedMany 测试获取维度
     const result = await executor.embedMany({
-      model: model.id,
+      model: getModelApiId(model),
       values: ['test'],
       abortSignal: signal
     })

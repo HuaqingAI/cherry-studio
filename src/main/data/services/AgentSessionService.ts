@@ -1,6 +1,6 @@
 import { application } from '@application'
-import { agentChannelTable as channelsTable } from '@data/db/schemas/agentChannel'
 import { agentTable as agentsTable } from '@data/db/schemas/agent'
+import { agentChannelTable as channelsTable } from '@data/db/schemas/agentChannel'
 import {
   type AgentSessionRow as SessionRow,
   agentSessionTable as sessionsTable,

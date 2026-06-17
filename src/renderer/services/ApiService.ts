@@ -24,6 +24,7 @@ import { isPromptToolUse, isSupportedToolUse } from '@renderer/utils/assistant'
 import { getErrorMessage, isAbortError } from '@renderer/utils/error'
 import { purifyMarkdownImages } from '@renderer/utils/markdown'
 import { findFileBlocks, findImageBlocks, getMainTextContent } from '@renderer/utils/messageUtils/find'
+import { getModelApiId } from '@renderer/utils/model'
 import { containsSupportedVariables, replacePromptVariables } from '@renderer/utils/prompt'
 import { NOT_SUPPORT_API_KEY_PROVIDER_TYPES, NOT_SUPPORT_API_KEY_PROVIDERS } from '@renderer/utils/provider'
 import { isEmpty, takeRight } from 'lodash'
@@ -35,12 +36,13 @@ import {
   // getAssistantSettings,
   getDefaultAssistant,
   getDefaultModel,
-  getProviderByModel,
   getQuickModel
 } from './AssistantService'
+import { buildLogPreview } from './chatLogPreview'
 import { ConversationService } from './ConversationService'
 import { injectUserMessageWithKnowledgeSearchPrompt } from './KnowledgeService'
 import type { BlockManager } from './messageStreaming'
+import { resolveRuntimeProviderForModel } from './runtimeProviderResolver'
 import type { StreamProcessorCallbacks } from './StreamProcessingService'
 // import { processKnowledgeSearch } from './KnowledgeService'
 // import {
@@ -54,6 +56,15 @@ import type { StreamProcessorCallbacks } from './StreamProcessingService'
 
 const logger = loggerService.withContext('ApiService')
 const SUMMARY_REQUEST_TIMEOUT_MS = 15_000
+
+function getLastUserMessagePreview(messages?: Message[], prompt?: string) {
+  if (prompt) {
+    return buildLogPreview(prompt)
+  }
+
+  const lastUserMessage = messages?.findLast((message) => message.role === 'user')
+  return buildLogPreview(lastUserMessage ? getMainTextContent(lastUserMessage) : '')
+}
 
 /**
  * Fetch active MCP servers from the Data API.
@@ -219,26 +230,29 @@ export async function fetchChatCompletion({
   uiMessages,
   allowedTools
 }: FetchChatCompletionParams) {
+  const model = assistant.model || getDefaultModel()
+  const userPreview = getLastUserMessagePreview(uiMessages, prompt)
   logger.info('fetchChatCompletion called with detailed context', {
     messageCount: messages?.length || 0,
-    prompt: prompt,
     assistantId: assistant.id,
     topicId,
     hasTopicId: !!topicId,
-    modelId: assistant.model?.id,
-    modelName: assistant.model?.name
+    modelId: model.id,
+    apiModelId: getModelApiId(model),
+    modelName: model.name,
+    userPreview
   })
 
   // Get base provider and apply API key rotation
   // NOTE: Shallow copy is intentional. Provider objects are not mutated by downstream code.
   // Nested properties (if any) are never modified after creation.
-  const baseProvider = getProviderByModel(assistant.model || getDefaultModel())
+  const baseProvider = await resolveRuntimeProviderForModel(model)
   const providerWithRotatedKey = {
     ...baseProvider,
     apiKey: getRotatedApiKey(baseProvider)
   }
 
-  const AI = new AiProvider(assistant.model || getDefaultModel(), providerWithRotatedKey)
+  const AI = new AiProvider(model, providerWithRotatedKey)
   const provider = AI.getActualProvider()
 
   const mcpTools: MCPTool[] = []
@@ -302,12 +316,25 @@ export async function fetchChatCompletion({
   }
 
   // --- Call AI Completions ---
-  await AI.completions(modelId, aiSdkParams, {
+  const result = await AI.completions(modelId, aiSdkParams, {
     ...middlewareConfig,
     assistant,
     topicId,
     callType: 'chat',
     uiMessages
+  })
+  const assistantPreview = buildLogPreview(result.getText())
+  logger.info('Chat completion finished', {
+    assistantId: assistant.id,
+    topicId,
+    modelId: model.id,
+    apiModelId: modelId,
+    modelName: model.name,
+    providerId: provider.id,
+    providerType: provider.type,
+    userPreview,
+    assistantPreview,
+    usage: result.usage
   })
 }
 
@@ -371,7 +398,7 @@ export async function fetchImageGeneration({
   onChunkReceived: (chunk: Chunk) => void
 }) {
   // 创建 AI provider
-  const baseProvider = getProviderByModel(assistant.model || getDefaultModel())
+  const baseProvider = await resolveRuntimeProviderForModel(assistant.model || getDefaultModel())
   const providerWithRotatedKey = {
     ...baseProvider,
     apiKey: getRotatedApiKey(baseProvider)
@@ -458,7 +485,7 @@ export async function fetchMessagesSummary({
 
   // 总结上下文总是取最后5条消息
   const contextMessages = takeRight(messages, 5)
-  const provider = getProviderByModel(model)
+  const provider = await resolveRuntimeProviderForModel(model)
 
   if (!hasApiKey(provider)) {
     return { text: null, error: i18n.t('error.no_api_key') }
@@ -545,7 +572,7 @@ export async function fetchMessagesSummary({
       await appendTrace({ topicId, traceId: messageWithTrace.traceId, model })
     }
 
-    const { getText, usage } = await AI.completions(model.id, llmMessages, {
+    const { getText, usage } = await AI.completions(getModelApiId(model), llmMessages, {
       ...middlewareConfig,
       assistant: summaryAssistant,
       topicId,
@@ -571,7 +598,7 @@ export async function fetchNoteSummary({ content, assistant }: { content: string
     prompt = await replacePromptVariables(prompt, model.name)
   }
 
-  const provider = getProviderByModel(model)
+  const provider = await resolveRuntimeProviderForModel(model)
 
   if (!hasApiKey(provider)) {
     return null
@@ -621,7 +648,7 @@ export async function fetchNoteSummary({ content, assistant }: { content: string
   }
 
   try {
-    const { getText, usage } = await AI.completions(model.id, llmMessages, {
+    const { getText, usage } = await AI.completions(getModelApiId(model), llmMessages, {
       ...middlewareConfig,
       assistant: summaryAssistant,
       callType: 'summary'
@@ -671,7 +698,7 @@ export async function fetchGenerate({
   if (!model) {
     model = getDefaultModel()
   }
-  const provider = getProviderByModel(model)
+  const provider = await resolveRuntimeProviderForModel(model)
 
   if (!hasApiKey(provider)) {
     return ''
@@ -710,7 +737,7 @@ export async function fetchGenerate({
 
   try {
     const result = await AI.completions(
-      model.id,
+      getModelApiId(model),
       {
         system: prompt,
         prompt: content
@@ -907,7 +934,7 @@ export async function checkApi(provider: Provider, model: Model, timeout = 15000
     }
 
     try {
-      await ai.completions(model.id, params, config)
+      await ai.completions(getModelApiId(model), params, config)
     } catch (e) {
       if (!isAbortError(e) && !isAbortError(streamError)) {
         throw streamError ?? e

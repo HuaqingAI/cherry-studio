@@ -1,7 +1,7 @@
 import { agentTable } from '@data/db/schemas/agent'
 import { agentChannelTable } from '@data/db/schemas/agentChannel'
 import { agentSessionMessageTable } from '@data/db/schemas/agentSessionMessage'
-import { agentTaskTable, agentTaskRunLogTable } from '@data/db/schemas/agentTask'
+import { agentTaskRunLogTable, agentTaskTable } from '@data/db/schemas/agentTask'
 import { agentSessionService, buildSessionUpdateData } from '@data/services/AgentSessionService'
 import { setupTestDatabase } from '@test-helpers/db'
 import { UserMessageStatus } from '@types'
@@ -235,7 +235,9 @@ describe('AgentSessionService', () => {
 
       expect(deleted).toBe(true)
       expect(await dbh.db.select().from(agentSessionMessageTable)).toHaveLength(0)
-      expect((await dbh.db.select().from(agentChannelTable).where(eq(agentChannelTable.agentId, agentId)))[0].sessionId).toBeNull()
+      expect(
+        (await dbh.db.select().from(agentChannelTable).where(eq(agentChannelTable.agentId, agentId)))[0].sessionId
+      ).toBeNull()
       expect(
         (await dbh.db.select().from(agentTaskRunLogTable).where(eq(agentTaskRunLogTable.taskId, taskId)))[0].sessionId
       ).toBeNull()
